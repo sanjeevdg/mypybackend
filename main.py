@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173","https://sanjeevdg.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,4 +65,16 @@ async def read_file(file: UploadFile = File(...)):
         "type": file.content_type,
         "size": len(contents),
         "text": text,
-    }    
+    }  
+
+
+@app.get("/")
+def root():
+    return {"status": "OK"}
+
+
+
+
+
+
+  
