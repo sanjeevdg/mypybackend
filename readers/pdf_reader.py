@@ -7,20 +7,22 @@ class PdfReader(BaseReader):
 
     extensions = ["pdf"]
 
-    def read(self, filename: str, contents: bytes) -> str:
+    def read(self, filename, contents):
 
-        text = []
+        doc = fitz.open(stream=contents, filetype="pdf")
 
-        pdf = fitz.open(stream=contents, filetype="pdf")
+        output = []
 
         try:
-            for page in pdf:
-                page_text = page.get_text("text")
+            for page_no, page in enumerate(doc, start=1):
 
-                if page_text:
-                    text.append(page_text)
+                text = page.get_text("text").strip()
+
+                output.append(
+                    f"===== PAGE {page_no} =====\n{text}"
+                )
 
         finally:
-            pdf.close()
+            doc.close()
 
-        return "\n\n".join(text)
+        return "\n\n".join(output)

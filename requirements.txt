@@ -6,3 +6,10 @@ pandas
 textract
 python-docx
 python-multipart
+openpyxl
+xlrd
+odfpy
+python-pptx
+ebooklib
+beautifulsoup4
+striprtf

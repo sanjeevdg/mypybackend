@@ -8,6 +8,17 @@ from readers.json_reader import JsonReader
 from readers.word_reader import WordReader
 from readers.pdf_reader import PdfReader
 
+from readers.xml_reader import XmlReader
+
+from readers.rtf_reader import RtfReader
+from readers.odt_reader import OdtReader
+
+from readers.epub_reader import EpubReader
+from readers.excel_reader import ExcelReader
+from readers.ods_reader import OdsReader
+from readers.odp_reader import OdpReader
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -39,6 +50,13 @@ READERS = [
     JsonReader(),
     WordReader(),
     PdfReader(),
+    XmlReader(),
+    RtfReader(),
+    OdtReader(),
+    EpubReader(),
+    ExcelReader(),
+    OdsReader(),
+    OdpReader(),
 ]
 
 def parse_file(filename, contents):
