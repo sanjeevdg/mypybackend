@@ -17,13 +17,16 @@ from readers.epub_reader import EpubReader
 from readers.excel_reader import ExcelReader
 from readers.ods_reader import OdsReader
 from readers.odp_reader import OdpReader
+from readers.pptx_reader import PptxReader
+
+import yaml
 
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","https://sanjeevdg.github.io"],
+    allow_origins=["http://localhost:4173","https://sanjeevdg.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,6 +60,7 @@ READERS = [
     ExcelReader(),
     OdsReader(),
     OdpReader(),
+    PptxReader(),
 ]
 
 def parse_file(filename, contents):
@@ -85,6 +89,10 @@ async def read_file(file: UploadFile = File(...)):
         "text": text,
     }  
 
+@app.get("/api/config")
+def get_config():
+    with open("app.yaml") as f:
+        return yaml.safe_load(f)
 
 @app.get("/")
 def root():
