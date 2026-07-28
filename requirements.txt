@@ -13,3 +13,4 @@ python-pptx
 ebooklib
 beautifulsoup4
 striprtf
+pyyaml
