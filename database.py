@@ -1,6 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from sqlalchemy import MetaData
+
+metadata = MetaData()
+
 DATABASE_URL = (
     "postgresql://sanjeev.dasgupta:npg_UbAvJimN3hE0@ep-solitary-meadow-593229-pooler.ap-southeast-1.aws.neon.tech/meddb?sslmode=require&channel_binding=require"
 )

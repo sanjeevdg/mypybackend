@@ -45,6 +45,41 @@ entities:
         label: Active
         type: checkbox
 
+      - name: appointment_time
+        label: Appointment
+        type: date
+
+      - name: gender
+        label: Gender
+        type: select
+        options:
+          - Male
+          - Female
+
+      - name: city
+        label: City
+        type: autocomplete
+        options:
+          - London
+          - Paris
+          - Delhi
+          - Kolkata
+          - Mumbai
+          - Bangalore
+
+      - name: document
+        label: Resume
+        type: file
+
+        accept:
+          - ".pdf"
+          - ".docx"
+
+        maxSizeMB: 20
+
+        upload:
+          endpoint: /api/upload
+
 buttons:
   - save
   - cancel

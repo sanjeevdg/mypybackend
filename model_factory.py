@@ -5,15 +5,22 @@ from sqlalchemy import (
     Integer,
     String,
     Boolean,
+    Date,
+    DateTime
 )
+from database import metadata
 
-metadata = MetaData()
 
 TYPE_MAP = {
     "text": String,
     "email": String,
     "number": Integer,
     "checkbox": Boolean,
+    "datetime":DateTime,
+    "date":Date,
+    "select":String,
+    "file":String,
+    "autocomplete":String
 }
 
 def build_models(config):
