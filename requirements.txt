@@ -16,4 +16,4 @@ striprtf
 pyyaml
 psycopg2-binary
 sqlalchemy
-
+dotenv
