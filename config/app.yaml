@@ -18,18 +18,28 @@ entities:
       - name: first_name
         label: First Name
         type: text
+        required: true
 
       - name: last_name
         label: Last Name
         type: text
+        required: true
 
       - name: age
         label: Age
         type: number
+        validation:
+          min: 18
+          max: 120
 
       - name: email
         label: Email
         type: email
+        required: true
+        validation:
+        email: true
+        regex: "^[A-Z]{2}[0-9]{6}$"
+        unique: true 
 
       - name: active
         label: Active
