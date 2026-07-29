@@ -23,7 +23,7 @@ import yaml
 from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal
-from sqlalchemy import insert, select, delete, update
+from sqlalchemy import insert, select, delete, update, create_engine
 
 
 from pathlib import Path
@@ -32,11 +32,28 @@ import uuid
 from database import metadata, engine
 from model_factory import build_models
 
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+#DATABASE_URL = os.getenv("DATABASE_URL")
+
+
+
+
+
+
 def rebuild_schema():
 
     metadata.clear()
 
     config = load_yaml()
+
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+    engine = create_engine(DATABASE_URL)
 
     build_models(config)
 
