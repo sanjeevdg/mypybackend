@@ -1,0 +1,54 @@
+app:
+  title: Customer Manager
+
+database:
+  type: postgres
+
+  "host": "ep-solitary-meadow-593229-pooler.ap-southeast-1.aws.neon.tech"
+  "database": "meddb"
+  "user": "sanjeev.dasgupta"
+  "password": "npg_UbAvJimN3hE0"
+
+entities:
+
+  users:
+
+    fields:
+
+      - name: first_name
+        label: First Name
+        type: text
+
+      - name: last_name
+        label: Last Name
+        type: text
+
+      - name: age
+        label: Age
+        type: number
+
+      - name: email
+        label: Email
+        type: email
+
+      - name: active
+        label: Active
+        type: checkbox
+
+buttons:
+  - save
+  - cancel
+
+table:
+
+  columns:
+
+    - first_name
+
+    - last_name
+
+    - age
+
+    - email
+
+    - active

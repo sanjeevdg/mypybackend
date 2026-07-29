@@ -20,13 +20,23 @@ from readers.odp_reader import OdpReader
 from readers.pptx_reader import PptxReader
 
 import yaml
+from config_loader import load_yaml
+from model_factory import build_models, metadata
+from database import engine, SessionLocal
+from sqlalchemy import insert, select
+
+config = load_yaml()
+
+metadata = build_models(config)
+
+metadata.create_all(engine)
 
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4173","https://sanjeevdg.github.io"],
+    allow_origins=["http://localhost:5173","https://sanjeevdg.github.io"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,6 +73,15 @@ READERS = [
     PptxReader(),
 ]
 
+
+
+@app.get("/api/config")
+def get_config():
+    with open("config/app.yaml") as f:
+        return yaml.safe_load(f)
+
+
+
 def parse_file(filename, contents):
 
     ext = filename.split(".")[-1].lower()
@@ -72,6 +91,7 @@ def parse_file(filename, contents):
             return reader.read(filename, contents)
 
     return f"No parser for .{ext}"
+
 
 
 @app.post("/api/read-file")
@@ -89,10 +109,46 @@ async def read_file(file: UploadFile = File(...)):
         "text": text,
     }  
 
-@app.get("/api/config")
-def get_config():
-    with open("app.yaml") as f:
-        return yaml.safe_load(f)
+
+@app.post("/api/{table}")
+def create_record(table: str, data: dict):
+
+    db = SessionLocal()
+
+    t = metadata.tables[table]
+
+    db.execute(
+
+        insert(t).values(**data)
+
+    )
+
+    db.commit()
+
+    return {"status": "ok"}
+
+@app.get("/api/{table}")
+def list_records(table: str):
+
+    db = SessionLocal()
+
+    t = metadata.tables[table]
+
+    result = db.execute(
+        select(t)
+    )
+
+    rows = []
+
+    for row in result.mappings():
+        rows.append(dict(row))
+
+    db.close()
+
+    return rows
+
+
+
 
 @app.get("/")
 def root():
