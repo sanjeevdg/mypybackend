@@ -52,3 +52,7 @@ table:
     - email
 
     - active
+
+actions:
+    edit: true
+    delete: true

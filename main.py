@@ -23,7 +23,7 @@ import yaml
 from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal
-from sqlalchemy import insert, select, delete
+from sqlalchemy import insert, select, delete, update
 
 config = load_yaml()
 
@@ -162,6 +162,28 @@ def delete_record(table: str, id: int):
     db.close()
 
     return {"status": "deleted"}
+
+
+@app.put("/api/{table}/{id}")
+def update_record(table: str, id: int, data: dict):
+
+    db = SessionLocal()
+
+    t = metadata.tables[table]
+
+    # Never update the primary key
+    data.pop("id", None)
+
+    db.execute(
+        update(t)
+        .where(t.c.id == id)
+        .values(**data)
+    )
+
+    db.commit()
+    db.close()
+
+    return {"status": "updated"}
 
 
 @app.get("/")
