@@ -23,7 +23,7 @@ import yaml
 from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal
-from sqlalchemy import insert, select
+from sqlalchemy import insert, select, delete
 
 config = load_yaml()
 
@@ -147,7 +147,21 @@ def list_records(table: str):
 
     return rows
 
+@app.delete("/api/{table}/{id}")
+def delete_record(table: str, id: int):
 
+    db = SessionLocal()
+
+    t = metadata.tables[table]
+
+    db.execute(
+        delete(t).where(t.c.id == id)
+    )
+
+    db.commit()
+    db.close()
+
+    return {"status": "deleted"}
 
 
 @app.get("/")
