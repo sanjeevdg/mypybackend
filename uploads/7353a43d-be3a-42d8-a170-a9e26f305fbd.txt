@@ -1,0 +1,165 @@
+i have a trading view AdvancedRealTimeChart from react-ts-tradingview-widgets and i want to place badge/marker 
+on points where the following patterns occur - 
+
+[
+    {
+        "symbol": "AAPL",
+        "patterns": [
+            {
+                "name": "Hammer",
+                "type": "bullish",
+                "date": "2025-09-03T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-09-15T13:30:00.000Z"
+            },
+            {
+                "name": "Morning Star",
+                "type": "bullish",
+                "date": "2025-09-16T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-09-17T13:30:00.000Z"
+            },
+            {
+                "name": "Bearish Engulfing",
+                "type": "bearish",
+                "date": "2025-09-18T13:30:00.000Z"
+            },        
+           
+        ],
+        "candles": [
+            {
+                "date": "2025-08-18T13:30:00.000Z",
+                "open": 231.6999969482422,
+                "high": 233.1199951171875,
+                "low": 230.11000061035156,
+                "close": 230.88999938964844
+            },
+            ......many more .....
+        ]
+    },
+
+
+....many more symbols.....patterns and candles.........
+
+
+   }
+]
+
+How can i go about displaying the above data on my trading view AdvancedRealTimeChart
+
+
+
+[
+    {
+        "symbol": "AAPL",
+        "patterns": [
+            {
+                "name": "Hammer",
+                "type": "bullish",
+                "date": "2025-09-03T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-09-15T13:30:00.000Z"
+            },
+            {
+                "name": "Morning Star",
+                "type": "bullish",
+                "date": "2025-09-16T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-09-17T13:30:00.000Z"
+            },
+            {
+                "name": "Bearish Engulfing",
+                "type": "bearish",
+                "date": "2025-09-18T13:30:00.000Z"
+            },
+            {
+                "name": "Morning Star",
+                "type": "bullish",
+                "date": "2025-09-19T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-09-29T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-09-30T13:30:00.000Z"
+            },
+            {
+                "name": "Morning Star",
+                "type": "bullish",
+                "date": "2025-09-30T13:30:00.000Z"
+            },
+            {
+                "name": "Evening Star",
+                "type": "bearish",
+                "date": "2025-10-09T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-10-15T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-10-28T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-10-29T13:30:00.000Z"
+            },
+            {
+                "name": "Doji",
+                "type": "neutral",
+                "date": "2025-11-10T14:30:00.000Z"
+            },
+            {
+                "name": "Morning Star",
+                "type": "bullish",
+                "date": "2025-11-10T14:30:00.000Z"
+            },
+            {
+                "name": "Shooting Star",
+                "type": "bearish",
+                "date": "2025-11-13T14:30:00.000Z"
+            },
+            {
+                "name": "Evening Star",
+                "type": "bearish",
+                "date": "2025-11-17T14:30:00.000Z"
+            }
+        ],
+        "candles": [
+            {
+                "date": "2025-08-18T13:30:00.000Z",
+                "open": 231.6999969482422,
+                "high": 233.1199951171875,
+                "low": 230.11000061035156,
+                "close": 230.88999938964844
+            },
+            ......many more .....
+        ]
+    },
+
+
+....many more symbols.....patterns and candles.........
+
+
+   }
+]

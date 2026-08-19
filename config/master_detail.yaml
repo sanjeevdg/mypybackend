@@ -1,0 +1,16 @@
+page:
+  title: "Inventory Management"
+  layout: "split-pane"
+  master:
+    type: "List"
+    dataSource: "/api/users" # Python endpoint listing IDs & names
+  detail:
+    type: "Card"
+    dataSource: "/api/users/{id}" # Python endpoint fetching full details
+    components:
+      - type: "Typography"
+        props: { variant: "h4", color: "primary" }
+        field: "product_name"
+      - type: "Typography"
+        props: { variant: "body1" }
+        field: "description"

@@ -31,7 +31,10 @@ import uuid
 
 from database import metadata, engine
 from model_factory import build_models
+from pathlib import Path
 
+
+CONFIG_DIR = Path("config")
 
 from dotenv import load_dotenv
 import os
@@ -51,11 +54,9 @@ def rebuild_schema():
 
     config = load_yaml()
 
-    DATABASE_URL = os.getenv("DATABASE_URL")
-
-    engine = create_engine(DATABASE_URL)
-
     build_models(config)
+
+    metadata.drop_all(bind=engine)
 
     metadata.create_all(bind=engine)
 
@@ -81,7 +82,22 @@ def parse_file(filename: str, contents: bytes):
     return text
 '''
 
+def load_schema():
 
+    metadata.clear()
+
+    config = load_yaml()
+
+    build_models(config)
+
+
+@app.on_event("startup")
+def startup():
+
+    load_schema()    
+
+    print("Loaded tables:")
+    print(list(metadata.tables.keys()))
 
 
 READERS = [
@@ -104,8 +120,17 @@ READERS = [
 
 
 @app.get("/api/config")
-def get_config():
-    with open("config/app.yaml") as f:
+def get_config(name: str = "app"):
+
+    config_file = CONFIG_DIR / f"{name}.yaml"
+
+    if not config_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Configuration '{name}.yaml' not found"
+        )
+
+    with open(config_file, "r") as f:
         return yaml.safe_load(f)
 
 
@@ -139,6 +164,72 @@ async def upload_file(file: UploadFile = File(...)):
         "filename": filename,
         "original": file.filename
     }
+
+
+
+
+
+
+@app.post("/api/login")
+def login(data: dict):
+
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=400,
+            detail="Email and password are required"
+        )
+
+    db = SessionLocal()
+
+    try:
+
+        t = metadata.tables.get("users")
+
+        if t is None:
+            raise HTTPException(
+                status_code=500,
+                detail="Users table is not loaded"
+            )
+
+        result = db.execute(
+            select(t).where(
+                t.c.email == email
+            )
+        )
+
+        user = result.mappings().first()
+
+        if user is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid email or password"
+            )
+
+        if user["password"] != password:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid email or password"
+            )
+
+        return {
+            "status": "ok",
+            "message": "Login successful",
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "first_name": user.get("first_name"),
+                "last_name": user.get("last_name")
+            }
+        }
+
+    finally:
+        db.close()
+
+
+
 
 @app.post("/api/read-file")
 async def read_file(file: UploadFile = File(...)):
@@ -231,20 +322,26 @@ def list_records(table: str):
 
     db = SessionLocal()
 
-    t = get_table(table)
+    try:
 
-    result = db.execute(
-        select(t)
-    )
+        t = metadata.tables[table]
 
-    rows = []
+        columns = [
+            c for c in t.c
+            if c.name != "password"
+        ]
 
-    for row in result.mappings():
-        rows.append(dict(row))
+        result = db.execute(
+            select(*columns)
+        )
 
-    db.close()
+        return [
+            dict(row)
+            for row in result.mappings()
+        ]
 
-    return rows
+    finally:
+        db.close()
 
 @app.delete("/api/{table}/{id}")
 def delete_record(table: str, id: int):

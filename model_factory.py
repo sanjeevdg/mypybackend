@@ -15,6 +15,7 @@ TYPE_MAP = {
     "text": String,
     "email": String,
     "number": Integer,
+    "password": String,
     "checkbox": Boolean,
     "datetime":DateTime,
     "date":Date,

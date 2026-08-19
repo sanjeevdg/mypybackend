@@ -3,16 +3,13 @@ app:
 
 database:
   type: postgres
-
-  "host": "ep-solitary-meadow-593229-pooler.ap-southeast-1.aws.neon.tech"
-  "database": "meddb"
-  "user": "sanjeev.dasgupta"
-  "password": "npg_UbAvJimN3hE0"
+  host: "ep-solitary-meadow-593229-pooler.ap-southeast-1.aws.neon.tech"
+  database: "meddb"
+  user: "sanjeev.dasgupta"
+  password: "npg_UbAvJimN3hE0"
 
 entities:
-
   users:
-
     fields:
 
       - name: first_name
@@ -37,10 +34,15 @@ entities:
         type: email
         required: true
         validation:
-        email: true
-        regex: "^[A-Z]{2}[0-9]{6}$"
-        unique: true 
+          email: true
+          regex: "^[A-Z]{2}[0-9]{6}$"
+          unique: true
 
+      - name: password
+        label: Password
+        type: password
+        required: true
+            
       - name: active
         label: Active
         type: checkbox
@@ -70,34 +72,25 @@ entities:
       - name: document
         label: Resume
         type: file
-
         accept:
           - ".pdf"
           - ".docx"
-
         maxSizeMB: 20
-
         upload:
           endpoint: /api/upload
 
-buttons:
-  - save
-  - cancel
+    buttons:
+      - save
+      - cancel
 
-table:
+    table:
+      columns:
+        - first_name
+        - last_name
+        - age
+        - email
+        - active
 
-  columns:
-
-    - first_name
-
-    - last_name
-
-    - age
-
-    - email
-
-    - active
-
-actions:
-    edit: true
-    delete: true
+    actions:
+      edit: true
+      delete: true
