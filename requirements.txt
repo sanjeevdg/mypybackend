@@ -17,3 +17,5 @@ pyyaml
 psycopg2-binary
 sqlalchemy
 dotenv
+passlib
+bcrypt

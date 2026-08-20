@@ -25,7 +25,7 @@ from model_factory import build_models, metadata
 from database import engine, SessionLocal, metadata
 
 from sqlalchemy import insert, select, delete, update, create_engine
-
+from passlib.context import CryptContext
 
 from pathlib import Path
 import uuid
@@ -45,7 +45,10 @@ load_dotenv()
 #DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
 
 
 
@@ -168,7 +171,132 @@ async def upload_file(file: UploadFile = File(...)):
 
 
 
+@app.post("/api/change-password")
+def change_password(data: dict):
 
+    db = SessionLocal()
+
+    try:
+
+        email = data.get("email")
+        current_password = data.get("current_password")
+        new_password = data.get("new_password")
+
+        # ---------------------------------------------
+        # Validation
+        # ---------------------------------------------
+
+        if not email:
+            raise HTTPException(
+                status_code=400,
+                detail="Email is required"
+            )
+
+        if not current_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Current password is required"
+            )
+
+        if not new_password:
+            raise HTTPException(
+                status_code=400,
+                detail="New password is required"
+            )
+
+        if len(new_password) < 8:
+            raise HTTPException(
+                status_code=400,
+                detail="New password must contain at least 8 characters"
+            )
+
+        # ---------------------------------------------
+        # Users table
+        # ---------------------------------------------
+
+        t = metadata.tables["users"]
+
+        # ---------------------------------------------
+        # Find user
+        # ---------------------------------------------
+
+        result = db.execute(
+            select(t).where(
+                t.c.email == email
+            )
+        )
+
+        user = result.mappings().first()
+
+        if user is None:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
+        # ---------------------------------------------
+        # Existing passwords are plain text
+        # ---------------------------------------------
+
+        if current_password != user["password"]:
+            raise HTTPException(
+                status_code=401,
+                detail="Current password is incorrect"
+            )
+
+        # ---------------------------------------------
+        # Hash new password
+        # ---------------------------------------------
+        print("EMAIL:", email)
+        print("CURRENT PASSWORD LENGTH:", len(current_password))
+        print("NEW PASSWORD LENGTH:", len(new_password))
+        print("NEW PASSWORD BYTES:", len(new_password.encode("utf-8")))
+
+        hashed_password = pwd_context.hash(
+            new_password
+        )
+
+        # ---------------------------------------------
+        # Update password
+        # ---------------------------------------------
+
+        db.execute(
+            update(t)
+            .where(
+                t.c.id == user["id"]
+            )
+            .values(
+                password=hashed_password
+            )
+        )
+
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "Password changed successfully"
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        db.rollback()
+
+        print(
+            "CHANGE PASSWORD ERROR:",
+            e
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        db.close()
 
 
 @app.post("/api/login")
