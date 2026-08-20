@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from readers.text_reader import TextReader
@@ -22,7 +22,8 @@ from readers.pptx_reader import PptxReader
 import yaml
 from config_loader import load_yaml
 from model_factory import build_models, metadata
-from database import engine, SessionLocal
+from database import engine, SessionLocal, metadata
+
 from sqlalchemy import insert, select, delete, update, create_engine
 
 
@@ -316,6 +317,44 @@ def create_record(table: str, data: dict):
     db.close()
 
     return {"status": "ok"}
+
+@app.get("/api/{table}/{record_id}")
+def get_record(table: str, record_id: int):
+
+    db = SessionLocal()
+
+    try:
+
+        # Get dynamic SQLAlchemy table
+        t = metadata.tables[table]
+
+        # Find the record by primary key
+        result = db.execute(
+            select(t).where(
+                t.c.id == record_id
+            )
+        )
+
+        row = result.mappings().first()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"{table} record {record_id} not found"
+            )
+
+        # Don't return password
+        record = {
+            key: value
+            for key, value in row.items()
+            if key != "password"
+        }
+
+        return record
+
+    finally:
+
+        db.close()
 
 @app.get("/api/{table}")
 def list_records(table: str):

@@ -1,0 +1,322 @@
+page:
+  type: container
+
+  props:
+    maxWidth: xl
+    sx:
+      py: 3
+
+  children:
+
+    # =====================================================
+    # PAGE TITLE
+    # =====================================================
+
+    - type: typography
+      props:
+        variant: h4
+        gutterBottom: true
+      text: "Customer Management"
+
+
+    # =====================================================
+    # MASTER / DETAIL LAYOUT
+    # =====================================================
+
+    - type: grid
+      props:
+        container: true
+        spacing: 3
+
+      children:
+
+        # =================================================
+        # MASTER
+        # =================================================
+
+        - type: grid
+          props:
+            size:
+              xs: 12
+              md: 5
+
+          children:
+
+            - type: paper
+              props:
+                elevation: 2
+                sx:
+                  p: 2
+
+              children:
+
+                - type: typography
+                  props:
+                    variant: h6
+                    gutterBottom: true
+                  text: "Customers"
+
+
+                # -----------------------------------------
+                # Search
+                # -----------------------------------------
+
+                - type: textfield
+                  props:
+                    label: "Search customers"
+                    name: customerSearch
+                    fullWidth: true
+                    size: small
+                    sx:
+                      mb: 2
+                  events:
+                    onChange: handleSearch
+
+
+                # -----------------------------------------
+                # Customer table
+                # -----------------------------------------
+
+                - type: table
+                  props:
+                    size: small
+
+                  children:
+
+                    # -------------------------------------
+                    # Table Header
+                    # -------------------------------------
+
+                    - type: tableHead
+                      children:
+
+                        - type: tableRow
+                          children:
+
+                            - type: tableCell
+                              text: "First Name"
+
+                            - type: tableCell
+                              text: "Last Name"
+
+                            - type: tableCell
+                              text: "Email"
+
+                            - type: tableCell
+                              text: "Active"
+
+
+                    # -------------------------------------
+                    # Table Body
+                    # -------------------------------------
+
+                    - type: tableBody
+                      dataSource: users
+
+                      children:
+
+                        - type: tableRow
+                          events:
+                            onClick: selectCustomer
+
+                          props:
+                            hover: true
+                            sx:
+                              cursor: pointer
+
+                          children:
+
+                            - type: tableCell
+                              field: first_name
+
+                            - type: tableCell
+                              field: last_name
+
+                            - type: tableCell
+                              field: email
+
+                            - type: tableCell
+                              field: active
+
+
+        # =================================================
+        # DETAIL
+        # =================================================
+
+        - type: grid
+          props:
+            size:
+              xs: 12
+              md: 7
+
+          children:
+
+            - type: paper
+              props:
+                elevation: 2
+                sx:
+                  p: 3
+
+              children:
+
+                - type: typography
+                  props:
+                    variant: h6
+                    gutterBottom: true
+                  text: "Customer Details"
+
+
+                # -----------------------------------------
+                # Customer ID
+                # -----------------------------------------
+
+                - type: textfield
+                  props:
+                    label: "Customer ID"
+                    name: id
+                    fullWidth: true
+                    disabled: true
+                    sx:
+                      mb: 2
+                  binding: "selectedUser.id"
+
+                # -----------------------------------------
+                # First Name
+                # -----------------------------------------
+
+                - type: textfield
+                  props:
+                    label: "First Name"
+                    name: first_name
+                    fullWidth: true
+                    sx:
+                      mb: 2
+                  binding: "selectedUser.first_name"
+
+
+                # -----------------------------------------
+                # Last Name
+                # -----------------------------------------
+
+                - type: textfield
+                  props:
+                    label: "Last Name"
+                    name: last_name
+                    fullWidth: true
+                    sx:
+                      mb: 2
+                  binding: "selectedUser.last_name"
+
+
+                # -----------------------------------------
+                # Email
+                # -----------------------------------------
+
+                - type: textfield
+                  props:
+                    label: "Email"
+                    name: email
+                    type: email
+                    fullWidth: true
+                    sx:
+                      mb: 2
+                  binding: "selectedUser.email"
+
+
+                # -----------------------------------------
+                # Age
+                # -----------------------------------------
+
+                - type: textfield
+                  props:
+                    label: "Age"
+                    name: age
+                    fullWidth: true
+                    sx:
+                      mb: 2
+                  binding: "selectedUser.age"
+
+
+                # -----------------------------------------
+                # Gender
+                # -----------------------------------------
+
+                - type: select
+                  props:
+                    label: "Gender"
+                    name: gender
+                    fullWidth: true
+                    sx:
+                      mb: 2
+
+                  binding: "selectedUser.gender"
+
+                  options:
+                    - Male
+                    - Female
+
+
+                # -----------------------------------------
+                # City
+                # -----------------------------------------
+
+                - type: select
+                  props:
+                    label: "City"
+                    name: city
+                    fullWidth: true
+                    sx:
+                      mb: 2
+
+                  binding: "selectedUser.city"
+
+                  options:
+                    - London
+                    - Paris
+                    - Delhi
+                    - Kolkata
+                    - Mumbai
+                    - Bangalore
+
+
+                # -----------------------------------------
+                # Active
+                # -----------------------------------------
+
+                - type: checkbox
+                  props:
+                    label: "Active"
+                    name: active
+
+                  binding: "selectedUser.active"
+
+
+                # -----------------------------------------
+                # Actions
+                # -----------------------------------------
+
+                - type: box
+                  props:
+                    sx:
+                      display: flex
+                      gap: 2
+                      mt: 3
+
+                  children:
+
+                    - type: button
+                      props:
+                        variant: contained
+                        color: primary
+                      events:
+                        onClick: saveCustomer
+                      text: "Save"
+
+
+                    - type: button
+                      props:
+                        variant: outlined
+                        color: error
+                      events:
+                        onClick: deleteCustomer
+                      text: "Delete"

@@ -1,0 +1,26 @@
+#breakout = price > vwap
+        #volume_spike = volume > avg_volume * 1.3
+        #if breakout and volume_spike and momentum > 0.15:        
+
+
+        #momentum = (price - df["close"].iloc[-5]) / df["close"].iloc[-5]
+
+        vwap_reclaim = prev_price < vwap and price > vwap
+
+        volume_surge = rvol > 1.1
+
+        range_expansion = range_candle > avg_range * 1.2
+        log.info(f"{s} rvol={rvol:.2f} avg_vol={int(avg_volume)} vol={volume}")
+        entry = (
+            vwap_reclaim and
+            volume_surge and
+            (momentum > 0.01 or range_expansion)
+        )
+        
+        '''
+        score = sum([
+            vwap_reclaim,
+            volume_surge,
+            range_expansion
+        ])
+        '''
