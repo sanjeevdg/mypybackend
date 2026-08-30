@@ -1,0 +1,485 @@
+app:
+  title: "Customer Order Management"
+  description: "Two-entity workflow demonstration"
+  version: "1.0"
+
+  navigation:
+    - label: "Customers"
+      entity: customers
+      icon: "People"
+
+    - label: "Orders"
+      entity: orders
+      icon: "ShoppingCart"
+
+
+entities:
+
+  # ============================================================
+  # ENTITY 1 : CUSTOMER
+  # ============================================================
+
+  customers:
+
+    label: "Customers"
+    singular: "Customer"
+    description: "Customer master information"
+
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+        label: "Customer ID"
+        readonly: true
+        hidden: true
+
+      - name: customerCode
+        type: text
+        label: "Customer Code"
+        required: true
+        validation:
+          minLength: 3
+          maxLength: 20
+          pattern: "^[A-Z0-9-]+$"
+
+      - name: firstName
+        type: text
+        label: "First Name"
+        required: true
+        validation:
+          minLength: 2
+          maxLength: 50
+
+      - name: lastName
+        type: text
+        label: "Last Name"
+        required: true
+        validation:
+          minLength: 2
+          maxLength: 50
+
+      - name: email
+        type: email
+        label: "Email"
+        required: true
+
+      - name: phone
+        type: text
+        label: "Phone"
+        validation:
+          pattern: "^[0-9+ -]{10,15}$"
+
+      - name: dateOfBirth
+        type: date
+        label: "Date of Birth"
+
+      - name: customerType
+        type: select
+        label: "Customer Type"
+        required: true
+        options:
+          - value: individual
+            label: "Individual"
+
+          - value: business
+            label: "Business"
+
+      - name: status
+        type: select
+        label: "Status"
+        required: true
+        default: active
+
+        options:
+          - value: active
+            label: "Active"
+
+          - value: inactive
+            label: "Inactive"
+
+      - name: createdAt
+        type: datetime
+        label: "Created At"
+        readonly: true
+
+
+    list:
+      title: "Customers"
+
+      columns:
+        - customerCode
+        - firstName
+        - lastName
+        - email
+        - customerType
+        - status
+
+      actions:
+        - type: view
+          label: "View"
+
+        - type: edit
+          label: "Edit"
+
+        - type: delete
+          label: "Delete"
+
+
+    form:
+      title: "Customer"
+
+      layout:
+        columns: 2
+
+      sections:
+
+        - title: "Customer Information"
+
+          fields:
+            - customerCode
+            - customerType
+            - firstName
+            - lastName
+            - email
+            - phone
+            - dateOfBirth
+            - status
+
+
+    workflow:
+
+      initialState: draft
+
+      states:
+
+        - draft
+        - active
+        - inactive
+
+      transitions:
+
+        - action: activate
+          label: "Activate"
+          from: draft
+          to: active
+
+        - action: deactivate
+          label: "Deactivate"
+          from: active
+          to: inactive
+
+        - action: reactivate
+          label: "Reactivate"
+          from: inactive
+          to: active
+
+
+      children:
+
+        - type: childTable
+
+          entity: orders
+          dataSource: orders
+
+          relationship:
+            parent: customers
+            parentKey: id
+            childKey: customerId
+
+          parentBinding: selectedUser.id
+
+          props:
+            title: "Orders"
+
+          columns:
+
+            - field: orderNumber
+              label: "Order Number"
+
+            - field: orderDate
+              label: "Order Date"
+              type: date
+
+            - field: product
+              label: "Product"
+
+            - field: quantity
+              label: "Quantity"
+
+            - field: totalAmount
+              label: "Total Amount"
+              type: currency
+
+            - field: status
+              label: "Status"
+
+
+  # ============================================================
+  # ENTITY 2 : ORDER
+  # ============================================================
+
+    orders:
+
+    label: "Orders"
+    singular: "Order"
+    description: "Customer orders"
+
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+        label: "Order ID"
+        readonly: true
+        hidden: true
+
+      - name: orderNumber
+        type: text
+        label: "Order Number"
+        readonly: true
+
+      - name: customerId
+        type: reference
+        label: "Customer"
+        required: true
+
+        reference:
+          entity: customers
+          valueField: id
+          labelField: customerCode
+
+      - name: orderDate
+        type: date
+        label: "Order Date"
+        required: true
+
+      - name: deliveryDate
+        type: date
+        label: "Delivery Date"
+
+      - name: product
+        type: text
+        label: "Product"
+        required: true
+
+      - name: quantity
+        type: number
+        label: "Quantity"
+        required: true
+
+        validation:
+          min: 1
+          max: 10000
+
+      - name: unitPrice
+        type: currency
+        label: "Unit Price"
+        required: true
+
+        validation:
+          min: 0
+
+      - name: totalAmount
+        type: currency
+        label: "Total Amount"
+        readonly: true
+
+      - name: status
+        type: select
+        label: "Order Status"
+        required: true
+        default: draft
+
+        options:
+
+          - value: draft
+            label: "Draft"
+
+          - value: submitted
+            label: "Submitted"
+
+          - value: approved
+            label: "Approved"
+
+          - value: shipped
+            label: "Shipped"
+
+          - value: delivered
+            label: "Delivered"
+
+          - value: cancelled
+            label: "Cancelled"
+
+      - name: notes
+        type: textarea
+        label: "Notes"
+
+        validation:
+          maxLength: 500
+
+
+    list:
+
+      title: "Orders"
+
+      columns:
+        - orderNumber
+        - customerId
+        - orderDate
+        - product
+        - quantity
+        - totalAmount
+        - status
+
+      actions:
+
+        - type: view
+          label: "View"
+
+        - type: edit
+          label: "Edit"
+
+        - type: delete
+          label: "Delete"
+
+
+    form:
+
+      title: "Order"
+
+      layout:
+        columns: 2
+
+      sections:
+
+        - title: "Order Information"
+
+          fields:
+            - orderNumber
+            - customerId
+            - orderDate
+            - deliveryDate
+            - product
+            - quantity
+            - unitPrice
+            - totalAmount
+            - status
+
+        - title: "Additional Information"
+
+          fields:
+            - notes
+
+
+    pages:
+
+  - id: customer-list
+    type: list
+    entity: customers
+    title: "Customers"
+
+    actions:
+      - type: create
+        label: "New Customer"
+
+      - type: view
+        route: "/customers/:id"
+
+
+  - id: customer-detail
+    type: detail
+    entity: customers
+    title: "Customer Details"
+
+    sections:
+
+      - type: form
+        entity: customers
+
+      - type: child-list
+        entity: orders
+        relation:
+          parentField: id
+          childField: customerId
+
+        actions:
+          - type: create
+            label: "New Order"
+
+
+  - id: order-detail
+    type: detail
+    entity: orders
+    title: "Order Details"
+
+    sections:
+
+      - type: form
+        entity: orders
+
+      - type: workflow
+        entity: orders        
+
+
+
+    workflow:
+
+      initialState: draft
+
+      states:
+
+        - draft
+        - submitted
+        - approved
+        - shipped
+        - delivered
+        - cancelled
+
+      transitions:
+
+        - action: submit
+          label: "Submit Order"
+          from: draft
+          to: submitted
+
+        - action: approve
+          label: "Approve"
+          from: submitted
+          to: approved
+
+        - action: ship
+          label: "Ship"
+          from: approved
+          to: shipped
+
+        - action: deliver
+          label: "Mark Delivered"
+          from: shipped
+          to: delivered
+
+        - action: cancel
+          label: "Cancel"
+          from:
+            - draft
+            - submitted
+            - approved
+          to: cancelled
+
+
+    parent:
+
+      entity: customers
+      foreignKey: customerId
+
+      display:
+        type: link
+        label: "Customer"
+
+
+    calculations:
+
+      - field: totalAmount
+        expression: "quantity * unitPrice"

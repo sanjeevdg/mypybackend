@@ -134,8 +134,15 @@ def get_config(name: str = "app"):
             detail=f"Configuration '{name}.yaml' not found"
         )
 
-    with open(config_file, "r") as f:
-        return yaml.safe_load(f)
+    try:
+        with open(config_file, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+
+    except yaml.YAMLError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid YAML: {str(e)}"
+        )
 
 
 
@@ -387,7 +394,7 @@ def rebuild_schema():
 
     metadata.create_all(bind=engine)
 
-@app.post("/api/admin/recreate/users")
+@app.post("/api/admin/recreate")
 def recreate():
 
     rebuild_schema()
@@ -437,14 +444,33 @@ def create_record(table: str, data: dict):
 
     db = SessionLocal()
 
-    t = get_table(table)
+    try:
 
-    db.execute(insert(t).values(**data))
+        t = get_table(table)
 
-    db.commit()
-    db.close()
+        # Remove ID when creating a new record.
+        # The database should generate it.
+        if data.get("id") is None:
+            data.pop("id", None)
 
-    return {"status": "ok"}
+        result = db.execute(
+            insert(t)
+            .values(**data)
+            .returning(t)
+        )
+
+        created = result.fetchone()
+
+        db.commit()
+
+        return dict(created._mapping)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
 
 @app.get("/api/{table}/{record_id}")
 def get_record(table: str, record_id: int):

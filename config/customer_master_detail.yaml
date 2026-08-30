@@ -1,322 +1,447 @@
-page:
-  type: container
+app:
+  title: "Customer Order Management"
+
+
+entities:
+
+  customers:
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+
+      - name: first_name
+        type: text
+        label: "First Name"
+        required: true
+
+      - name: last_name
+        type: text
+        label: "Last Name"
+        required: true
+
+      - name: email
+        type: email
+        label: "Email"
+        required: true
+
+      - name: age
+        type: number
+        label: "Age"
+
+      - name: gender
+        type: select
+        label: "Gender"
+        options:
+        - Male
+        - Female
+        - Other
+
+      - name: city
+        type: select
+        label: "City"
+        options:
+          - London
+          - Paris
+          - Delhi
+          - Kolkata
+          - Mumbai
+          - Bangalore
 
-  props:
-    maxWidth: xl
-    sx:
-      py: 3
+      - name: active
+        type: boolean
+        label: "Active"
 
-  children:
+  orders:
+    key: id
 
-    # =====================================================
-    # PAGE TITLE
-    # =====================================================
+    fields:
 
-    - type: typography
-      props:
-        variant: h4
-        gutterBottom: true
-      text: "Customer Management"
+      - name: id
+        type: number
 
+      - name: customer_id
+        type: reference
+        label: "Customer"
+        readonly: false
+        reference:
+          entity: customers
+          valueField: id
+          labelField: first_name
 
-    # =====================================================
-    # MASTER / DETAIL LAYOUT
-    # =====================================================
+      - name: order_date
+        type: date
+        label: "Order Date"
 
-    - type: grid
-      props:
-        container: true
-        spacing: 3
+      - name: product
+        type: text
+        label: "Product"
 
-      children:
+      - name: quantity
+        type: number
+        label: "Quantity"
 
-        # =================================================
-        # MASTER
-        # =================================================
+      - name: amount
+        type: currency
+        label: "Amount"
 
-        - type: grid
-          props:
-            size:
-              xs: 12
-              md: 5
+      - name: status
+        type: select
+        label: "Status"
+        options:
+          - draft
+          - submitted
+          - approved
+          - shipped
+          - delivered
+          - cancelled
 
-          children:
 
-            - type: paper
-              props:
-                elevation: 2
-                sx:
-                  p: 2
+    workflow:
 
-              children:
+      initialState: draft
 
-                - type: typography
-                  props:
-                    variant: h6
-                    gutterBottom: true
-                  text: "Customers"
+      transitions:
 
+        - action: submit
+          label: "Submit"
+          from: draft
+          to: submitted
 
-                # -----------------------------------------
-                # Search
-                # -----------------------------------------
+        - action: approve
+          label: "Approve"
+          from: submitted
+          to: approved
 
-                - type: textfield
-                  props:
-                    label: "Search customers"
-                    name: customerSearch
-                    fullWidth: true
-                    size: small
-                    sx:
-                      mb: 2
-                  events:
-                    onChange: handleSearch
+        - action: ship
+          label: "Ship"
+          from: approved
+          to: shipped
 
+        - action: deliver
+          label: "Deliver"
+          from: shipped
+          to: delivered
 
-                # -----------------------------------------
-                # Customer table
-                # -----------------------------------------
+        - action: cancel
+          label: "Cancel"
+          from:
+            - draft
+            - submitted
+            - approved
+          to: cancelled
 
-                - type: table
-                  props:
-                    size: small
 
-                  children:
+relationships:
 
-                    # -------------------------------------
-                    # Table Header
-                    # -------------------------------------
+  - parent: customers
+    child: orders
+    parentKey: id
+    childKey: customer_id
 
-                    - type: tableHead
-                      children:
 
-                        - type: tableRow
-                          children:
+pages:
 
-                            - type: tableCell
-                              text: "First Name"
+  customer:
 
-                            - type: tableCell
-                              text: "Last Name"
+    type: container
 
-                            - type: tableCell
-                              text: "Email"
+    props:
+      maxWidth: xl
+      sx:
+        py: 3
 
-                            - type: tableCell
-                              text: "Active"
+    children:
 
+      - type: typography
+        props:
+          variant: h4
+          gutterBottom: true
+        text: "Customer Management"
 
-                    # -------------------------------------
-                    # Table Body
-                    # -------------------------------------
 
-                    - type: tableBody
-                      dataSource: users
+      - type: grid
+        props:
+          container: true
+          spacing: 3
 
-                      children:
+        children:
 
-                        - type: tableRow
-                          events:
-                            onClick: selectCustomer
+          # ==========================================
+          # CUSTOMER MASTER
+          # ==========================================
 
-                          props:
-                            hover: true
-                            sx:
-                              cursor: pointer
+          - type: grid
+            props:
+              size:
+                xs: 12
+                md: 5
 
-                          children:
+            children:
 
-                            - type: tableCell
-                              field: first_name
+              - type: paper
+                props:
+                  elevation: 2
+                  sx:
+                    p: 2
 
-                            - type: tableCell
-                              field: last_name
+                children:
 
-                            - type: tableCell
-                              field: email
+                  - type: typography
+                    props:
+                      variant: h6
+                      gutterBottom: true
+                    text: "Customers"
 
-                            - type: tableCell
-                              field: active
+                  
+                  - type: button
+                    props:
+                      variant: contained
+                      color: primary
+                      sx:
+                        mb: 2
+                    events:
+                      onClick: newCustomer
+                    text: "New Customer"  
 
 
-        # =================================================
-        # DETAIL
-        # =================================================
+                  - type: textfield
+                    props:
+                      label: "Search customers"
+                      name: customerSearch
+                      fullWidth: true
+                      size: small
+                      sx:
+                        mb: 2
 
-        - type: grid
-          props:
-            size:
-              xs: 12
-              md: 7
-
-          children:
+                    events:
+                      onChange: handleSearch
 
-            - type: paper
-              props:
-                elevation: 2
-                sx:
-                  p: 3
 
-              children:
+                  - type: table
+                    props:
+                      size: small
 
-                - type: typography
-                  props:
-                    variant: h6
-                    gutterBottom: true
-                  text: "Customer Details"
+                    children:
 
+                      - type: tableHead
 
-                # -----------------------------------------
-                # Customer ID
-                # -----------------------------------------
+                        children:
 
-                - type: textfield
-                  props:
-                    label: "Customer ID"
-                    name: id
-                    fullWidth: true
-                    disabled: true
-                    sx:
-                      mb: 2
-                  binding: "selectedUser.id"
+                          - type: tableRow
 
-                # -----------------------------------------
-                # First Name
-                # -----------------------------------------
+                            children:
 
-                - type: textfield
-                  props:
-                    label: "First Name"
-                    name: first_name
-                    fullWidth: true
-                    sx:
-                      mb: 2
-                  binding: "selectedUser.first_name"
+                              - type: tableCell
+                                text: "First Name"
 
+                              - type: tableCell
+                                text: "Last Name"
 
-                # -----------------------------------------
-                # Last Name
-                # -----------------------------------------
+                              - type: tableCell
+                                text: "Email"
 
-                - type: textfield
-                  props:
-                    label: "Last Name"
-                    name: last_name
-                    fullWidth: true
-                    sx:
-                      mb: 2
-                  binding: "selectedUser.last_name"
+                              - type: tableCell
+                                text: "Active"
 
 
-                # -----------------------------------------
-                # Email
-                # -----------------------------------------
-
-                - type: textfield
-                  props:
-                    label: "Email"
-                    name: email
-                    type: email
-                    fullWidth: true
-                    sx:
-                      mb: 2
-                  binding: "selectedUser.email"
-
-
-                # -----------------------------------------
-                # Age
-                # -----------------------------------------
-
-                - type: textfield
-                  props:
-                    label: "Age"
-                    name: age
-                    fullWidth: true
-                    sx:
-                      mb: 2
-                  binding: "selectedUser.age"
-
-
-                # -----------------------------------------
-                # Gender
-                # -----------------------------------------
-
-                - type: select
-                  props:
-                    label: "Gender"
-                    name: gender
-                    fullWidth: true
-                    sx:
-                      mb: 2
-
-                  binding: "selectedUser.gender"
-
-                  options:
-                    - Male
-                    - Female
-
-
-                # -----------------------------------------
-                # City
-                # -----------------------------------------
-
-                - type: select
-                  props:
-                    label: "City"
-                    name: city
-                    fullWidth: true
-                    sx:
-                      mb: 2
-
-                  binding: "selectedUser.city"
-
-                  options:
-                    - London
-                    - Paris
-                    - Delhi
-                    - Kolkata
-                    - Mumbai
-                    - Bangalore
-
-
-                # -----------------------------------------
-                # Active
-                # -----------------------------------------
-
-                - type: checkbox
-                  props:
-                    label: "Active"
-                    name: active
-
-                  binding: "selectedUser.active"
-
-
-                # -----------------------------------------
-                # Actions
-                # -----------------------------------------
-
-                - type: box
-                  props:
-                    sx:
-                      display: flex
-                      gap: 2
-                      mt: 3
-
-                  children:
-
-                    - type: button
-                      props:
-                        variant: contained
-                        color: primary
-                      events:
-                        onClick: saveCustomer
-                      text: "Save"
-
-
-                    - type: button
-                      props:
-                        variant: outlined
-                        color: error
-                      events:
-                        onClick: deleteCustomer
-                      text: "Delete"
+                      - type: tableBody
+
+                        dataSource: customers
+
+                        children:
+
+                          - type: tableRow
+
+                            events:
+                              onClick: selectCustomer
+
+                            props:
+                              hover: true
+                              sx:
+                                cursor: pointer
+
+                            children:
+
+                              - type: tableCell
+                                field: first_name
+
+                              - type: tableCell
+                                field: last_name
+
+                              - type: tableCell
+                                field: email
+
+                              - type: tableCell
+                                field: active
+
+
+          # ==========================================
+          # CUSTOMER DETAIL
+          # ==========================================
+
+          - type: grid
+
+            props:
+              size:
+                xs: 12
+                md: 7
+
+            children:
+
+              - type: paper
+
+                props:
+                  elevation: 2
+                  sx:
+                    p: 3
+
+                children:
+
+                  - type: typography
+                    props:
+                      variant: h6
+                      gutterBottom: true
+                    text: "Customer Details"
+
+
+                  - type: form
+
+                    entity: customers
+
+                    binding: selectedUser
+
+                    fields:
+
+                      - id
+                      - first_name
+                      - last_name
+                      - email
+                      - age
+                      - gender
+                      - city
+                      - active
+
+                  # ==================================
+                  # CUSTOMER ACTIONS
+                  # ==================================
+
+                  - type: box
+
+                    props:
+                      sx:
+                        display: flex
+                        gap: 2
+                        mt: 3
+
+                    children:
+
+                      - type: button
+                        props:
+                          variant: contained
+                          color: primary
+
+                        events:
+                          onClick: saveCustomer
+
+                        text: "Save"
+
+
+                      - type: button
+                        props:
+                          variant: outlined
+                          color: error
+
+                        events:
+                          onClick: deleteCustomer
+
+                        text: "Delete"      
+                  # ==================================
+                  # CUSTOMER ORDERS
+                  # ==================================
+
+                  - type: typography
+                    props:
+                      variant: h6
+                      gutterBottom: true
+                    text: "Orders"
+
+
+                  - type: button
+                    props:
+                      variant: contained
+                      color: primary
+                      sx:
+                        mb: 2
+
+                    events:
+                      onClick: newOrder
+
+                    text: "New Order"
+
+
+                  # ==================================
+                  # ORDER FORM
+                  # ==================================
+
+                  - type: entityForm
+
+                    entity: orders
+
+                    binding: selectedOrder
+
+                    
+
+                    fields:
+                      - customer_id
+                      - order_date
+                      - product
+                      - quantity
+                      - amount
+                      - status
+
+                    events:
+                      onSave: saveOrder  
+                  # ==================================
+                  # EXISTING ORDERS
+                  # ==================================
+
+                  - type: childTable
+
+                    entity: orders
+
+                    dataSource: orders
+                    
+                    events:
+                      onClick: selectOrder
+                    
+                    relationship:
+                      parent: customers
+                      parentKey: id
+                      childKey: customer_id
+
+                    parentBinding: selectedUser.id
+
+                    columns:
+
+                      - field: order_date
+                        label: "Order Date"
+                        type: date
+
+                      - field: product
+                        label: "Product"
+
+                      - field: quantity
+                        label: "Quantity"
+
+                      - field: amount
+                        label: "Amount"
+                        type: currency
+
+                      - field: status
+                        label: "Status"
+
+
+                     
