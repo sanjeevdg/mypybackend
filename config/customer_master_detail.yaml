@@ -70,6 +70,7 @@ entities:
           entity: customers
           valueField: id
           labelField: first_name
+          onDelete: cascade
 
       - name: order_date
         type: date
