@@ -464,6 +464,7 @@ pages:
       entity: customers
       binding: selectedUser
 
+
     stats:
 
       - title: "Total Orders"
@@ -486,6 +487,7 @@ pages:
         field: status
         value: approved
         aggregate: count
+
 
     chart:
       type: line
