@@ -445,4 +445,58 @@ pages:
                         label: "Status"
 
 
+  dashboard:
+
+    type: dashboard
+
+    props:
+      maxWidth: xl
+      sx:
+        py: 3
+
+    title: "Customer Dashboard"
+
+    customerList:
+      entity: customers
+      dataSource: customers
+
+    customerSummary:
+      entity: customers
+      binding: selectedUser
+
+    stats:
+
+      - title: "Total Orders"
+        entity: orders
+        aggregate: count
+
+      - title: "Total Revenue"
+        entity: orders
+        field: amount
+        aggregate: sum
+
+      - title: "Pending Orders"
+        entity: orders
+        field: status
+        value: submitted
+        aggregate: count
+
+      - title: "Approved Orders"
+        entity: orders
+        field: status
+        value: approved
+        aggregate: count
+
+    chart:
+      type: line
+      title: "Order Revenue"
+      entity: orders
+      x: order_date
+      y: amount    
+
+    recentOrders:
+      entity: orders
+      dataSource: orders
+      limit: 10
+
                      

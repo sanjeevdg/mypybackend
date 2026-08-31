@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
 
 from readers.text_reader import TextReader
@@ -24,7 +24,7 @@ from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal, metadata
 
-from sqlalchemy import insert, select, delete, update, create_engine
+from sqlalchemy import insert, select, delete, update, create_engine, text
 from passlib.context import CryptContext
 
 from pathlib import Path
@@ -33,7 +33,7 @@ import uuid
 from database import metadata, engine
 from model_factory import build_models
 from pathlib import Path
-
+from typing import Any
 
 CONFIG_DIR = Path("config")
 
@@ -402,6 +402,251 @@ def recreate():
     return {"status": "ok"}
 
 
+@app.post("/api/admin/migrate/orders-amount")
+def migrate_orders_amount():
+
+    try:
+
+        with engine.begin() as conn:
+
+            conn.execute(
+                text("""
+                    ALTER TABLE orders
+                    ALTER COLUMN amount TYPE NUMERIC(12,2)
+                    USING NULLIF(TRIM(amount), '')::NUMERIC
+                """)
+            )
+
+        return {
+            "success": True,
+            "message": "orders.amount converted to NUMERIC(12,2)"
+        }
+
+    except Exception as e:
+
+        print("Migration error:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+@app.get("/api/chart")
+def get_chart_data(
+    entity: str,
+    x: str,
+    y: str
+):
+
+    # -----------------------------------------
+    # ENTITY VALIDATION
+    # -----------------------------------------
+
+    if entity not in metadata.tables:
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown entity: {entity}"
+        )
+
+    table = metadata.tables[entity]
+
+    # -----------------------------------------
+    # FIELD VALIDATION
+    # -----------------------------------------
+
+    if x not in table.c:
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown x field '{x}' in '{entity}'"
+        )
+
+    if y not in table.c:
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown y field '{y}' in '{entity}'"
+        )
+
+    # -----------------------------------------
+    # QUERY
+    # -----------------------------------------
+
+    sql = text(
+        f"""
+        SELECT
+            {x},
+            {y}
+        FROM {entity}
+        WHERE {x} IS NOT NULL
+          AND {y} IS NOT NULL
+        ORDER BY {x}
+        """
+    )
+
+    with engine.connect() as conn:
+
+        rows = conn.execute(sql).mappings().all()
+
+    # -----------------------------------------
+    # RETURN CHART DATA
+    # -----------------------------------------
+
+    result = []
+
+    for row in rows:
+
+        result.append({
+            "x": row[x],
+            "y": float(row[y])
+        })
+
+    return result
+
+@app.post("/api/stats")
+def get_stats(payload: dict[str, Any] = Body(...)):
+
+    stats = payload.get("stats", [])
+
+    if not isinstance(stats, list):
+        raise HTTPException(
+            status_code=400,
+            detail="'stats' must be a list"
+        )
+
+    results = []
+
+    for stat in stats:
+
+        title = stat.get("title", "")
+        entity = stat.get("entity")
+        field = stat.get("field")
+        aggregate = stat.get("aggregate")
+        value = stat.get("value")
+
+        # -----------------------------------------
+        # BASIC VALIDATION
+        # -----------------------------------------
+
+        if not entity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stat '{title}' has no entity"
+            )
+
+        if not aggregate:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stat '{title}' has no aggregate"
+            )
+
+        # -----------------------------------------
+        # ENTITY VALIDATION
+        # -----------------------------------------
+
+        if entity not in metadata.tables:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown entity: {entity}"
+            )
+
+        table = metadata.tables[entity]
+
+        # -----------------------------------------
+        # FIELD VALIDATION
+        # -----------------------------------------
+
+        if field is not None and field not in table.c:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown field '{field}' in entity '{entity}'"
+            )
+
+        # -----------------------------------------
+        # AGGREGATE VALIDATION
+        # -----------------------------------------
+
+        allowed_aggregates = {
+            "count",
+            "sum"
+        }
+
+        if aggregate not in allowed_aggregates:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported aggregate: {aggregate}"
+            )
+
+        # -----------------------------------------
+        # COUNT
+        # -----------------------------------------
+
+        if aggregate == "count":
+
+            if field and value is not None:
+
+                sql = text(
+                    f"""
+                    SELECT COUNT(*)
+                    FROM {entity}
+                    WHERE {field} = :value
+                    """
+                )
+
+                with engine.connect() as conn:
+
+                    result = conn.execute(
+                        sql,
+                        {"value": value}
+                    ).scalar()
+
+            else:
+
+                sql = text(
+                    f"""
+                    SELECT COUNT(*)
+                    FROM {entity}
+                    """
+                )
+
+                with engine.connect() as conn:
+
+                    result = conn.execute(sql).scalar()
+
+        # -----------------------------------------
+        # SUM
+        # -----------------------------------------
+
+        elif aggregate == "sum":
+
+            if not field:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Stat '{title}' requires a field for sum"
+                )
+
+            sql = text(
+                f"""
+                SELECT COALESCE(SUM({field}), 0)
+                FROM {entity}
+                """
+            )
+
+            with engine.connect() as conn:
+
+                result = conn.execute(sql).scalar()
+
+        # -----------------------------------------
+        # RESULT
+        # -----------------------------------------
+
+        results.append({
+            "title": title,
+            "value": result if result is not None else 0
+        })
+
+    return results
 
 
 def get_table(table_name):
@@ -573,6 +818,7 @@ def update_record(table: str, id: int, data: dict):
     db.close()
 
     return {"status": "updated"}
+
 
 
 
