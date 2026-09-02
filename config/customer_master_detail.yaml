@@ -145,6 +145,7 @@ relationships:
 
 pages:
 
+  
   customer:
 
     type: container
@@ -456,6 +457,17 @@ pages:
 
     title: "Customer Dashboard"
 
+    widgets:
+
+      - id: total_customers
+        type: stat
+        title: Total Customers
+
+        source:
+          entity: customers
+          aggregate: count    
+
+
     customerList:
       entity: customers
       dataSource: customers
@@ -469,23 +481,35 @@ pages:
       - title: "Total Orders"
         entity: orders
         aggregate: count
+        filter:
+          field: customer_id
+          binding: selectedUser.id
 
       - title: "Total Revenue"
         entity: orders
         field: amount
         aggregate: sum
+        filter:
+          field: customer_id
+          binding: selectedUser.id
 
       - title: "Pending Orders"
         entity: orders
         field: status
         value: submitted
         aggregate: count
+        filter:
+          field: customer_id
+          binding: selectedUser.id
 
       - title: "Approved Orders"
         entity: orders
         field: status
         value: approved
         aggregate: count
+        filter:
+          field: customer_id
+          binding: selectedUser.id  
 
     chart:
       type: line

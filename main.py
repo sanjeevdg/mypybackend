@@ -508,6 +508,14 @@ def get_chart_data(
 def get_stats(payload: dict[str, Any] = Body(...)):
 
     stats = payload.get("stats", [])
+    selected_customer_id = payload.get("selectedCustomerId")
+
+    selected_customer_id = payload.get("selectedCustomerId")
+
+    print("========== STATS API DEBUG ==========")
+    print("selectedCustomerId:", selected_customer_id)
+    print("stats:", stats)
+    print("=====================================")
 
     if not isinstance(stats, list):
         raise HTTPException(
@@ -584,13 +592,88 @@ def get_stats(payload: dict[str, Any] = Body(...)):
 
         if aggregate == "count":
 
+            conditions = []
+            params = {}
+
+            # -----------------------------------------
+            # YAML VALUE FILTER
+            # -----------------------------------------
+
             if field and value is not None:
+
+                conditions.append(
+                    f"{field} = :value"
+                )
+
+                params["value"] = value
+
+            # -----------------------------------------
+            # SELECTED CUSTOMER FILTER
+            # -----------------------------------------
+
+            filter_config = stat.get("filter")
+
+            if filter_config:
+
+                filter_field = filter_config.get("field")
+
+                if filter_field not in table.c:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Unknown filter field "
+                            f"'{filter_field}' in entity '{entity}'"
+                        )
+                    )
+
+                if selected_customer_id is None:
+                    result = 0
+                else:
+
+                    conditions.append(
+                        f"{filter_field} = :selected_customer_id"
+                    )
+
+                    params["selected_customer_id"] = (
+                        selected_customer_id
+                    )
+
+                    where_clause = (
+                        " WHERE " +
+                        " AND ".join(conditions)
+                        if conditions
+                        else ""
+                    )
+
+                    sql = text(
+                        f"""
+                        SELECT COUNT(*)
+                        FROM {entity}
+                        {where_clause}
+                        """
+                    )
+
+                    with engine.connect() as conn:
+
+                        result = conn.execute(
+                            sql,
+                            params
+                        ).scalar()
+
+            else:
+
+                where_clause = (
+                    " WHERE " +
+                    " AND ".join(conditions)
+                    if conditions
+                    else ""
+                )
 
                 sql = text(
                     f"""
                     SELECT COUNT(*)
                     FROM {entity}
-                    WHERE {field} = :value
+                    {where_clause}
                     """
                 )
 
@@ -598,21 +681,8 @@ def get_stats(payload: dict[str, Any] = Body(...)):
 
                     result = conn.execute(
                         sql,
-                        {"value": value}
+                        params
                     ).scalar()
-
-            else:
-
-                sql = text(
-                    f"""
-                    SELECT COUNT(*)
-                    FROM {entity}
-                    """
-                )
-
-                with engine.connect() as conn:
-
-                    result = conn.execute(sql).scalar()
 
         # -----------------------------------------
         # SUM
@@ -626,16 +696,70 @@ def get_stats(payload: dict[str, Any] = Body(...)):
                     detail=f"Stat '{title}' requires a field for sum"
                 )
 
-            sql = text(
-                f"""
-                SELECT COALESCE(SUM({field}), 0)
-                FROM {entity}
-                """
-            )
+            conditions = []
+            params = {}
 
-            with engine.connect() as conn:
+            filter_config = stat.get("filter")
 
-                result = conn.execute(sql).scalar()
+            if filter_config:
+
+                filter_field = filter_config.get("field")
+
+                if filter_field not in table.c:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Unknown filter field "
+                            f"'{filter_field}' in entity '{entity}'"
+                        )
+                    )
+
+                if selected_customer_id is None:
+
+                    result = 0
+
+                else:
+
+                    conditions.append(
+                        f"{filter_field} = :selected_customer_id"
+                    )
+
+                    params["selected_customer_id"] = (
+                        selected_customer_id
+                    )
+
+                    where_clause = (
+                        " WHERE " +
+                        " AND ".join(conditions)
+                    )
+
+                    sql = text(
+                        f"""
+                        SELECT COALESCE(SUM({field}), 0)
+                        FROM {entity}
+                        {where_clause}
+                        """
+                    )
+
+                    with engine.connect() as conn:
+
+                        result = conn.execute(
+                            sql,
+                            params
+                        ).scalar()
+
+            else:
+
+                sql = text(
+                    f"""
+                    SELECT COALESCE(SUM({field}), 0)
+                    FROM {entity}
+                    """
+                )
+
+                with engine.connect() as conn:
+
+                    result = conn.execute(sql).scalar()
 
         # -----------------------------------------
         # RESULT
