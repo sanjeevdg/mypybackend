@@ -457,17 +457,6 @@ pages:
 
     title: "Customer Dashboard"
 
-    widgets:
-
-      - id: total_customers
-        type: stat
-        title: Total Customers
-
-        source:
-          entity: customers
-          aggregate: count    
-
-
     customerList:
       entity: customers
       dataSource: customers
@@ -476,40 +465,138 @@ pages:
       entity: customers
       binding: selectedUser
 
-    stats:
+    widgets:
 
-      - title: "Total Orders"
-        entity: orders
-        aggregate: count
+      - id: total_customers
+        type: stat
+        title: "Total Customers"
+
+        source:
+          entity: customers
+          aggregate: count
+
+
+      - id: total_orders
+        type: stat
+        title: "Total Orders"
+
+        source:
+          entity: orders
+          aggregate: count
+
         filter:
           field: customer_id
           binding: selectedUser.id
 
-      - title: "Total Revenue"
-        entity: orders
-        field: amount
-        aggregate: sum
+
+      - id: total_revenue
+        type: stat
+        title: "Total Revenue"
+
+        source:
+          entity: orders
+          field: amount
+          aggregate: sum
+
         filter:
           field: customer_id
           binding: selectedUser.id
 
-      - title: "Pending Orders"
-        entity: orders
-        field: status
-        value: submitted
-        aggregate: count
+
+      - id: pending_orders
+        type: stat
+        title: "Pending Orders"
+
+        source:
+          entity: orders
+          field: status
+          aggregate: count
+          value: submitted
+
         filter:
           field: customer_id
           binding: selectedUser.id
 
-      - title: "Approved Orders"
-        entity: orders
-        field: status
-        value: approved
-        aggregate: count
+
+      - id: approved_orders
+        type: stat
+        title: "Approved Orders"
+
+        source:
+          entity: orders
+          field: status
+          aggregate: count
+          value: approved
+
         filter:
           field: customer_id
-          binding: selectedUser.id  
+          binding: selectedUser.id
+
+      - id: recent_orders
+        type: table
+        title: "Recent Orders"
+
+        source:
+          entity: orders
+          limit: 10
+        
+          columns:
+            - field: order_date
+              label: Date
+        
+            - field: product
+              label: Product
+        
+            - field: quantity
+              label: Quantity
+        
+            - field: amount
+              label: Amount
+        
+            - field: status
+              label: Status
+        
+        filter:
+          field: customer_id
+          binding: selectedUser.id
+
+
+      - id: customer_list
+        type: table
+        title: "Customers"
+        source:
+          entity: customers
+          columns:
+            - field: first_name
+              label: First Name
+            - field: last_name
+              label: Last Name 
+        select:
+          action: selectCustomer      
+
+      - id: customer_summary
+        type: detail
+        title: "Customer Details"
+
+        source:
+          entity: customers
+          binding: selectedUser
+
+        fields:
+          - field: first_name
+            label: First Name
+
+          - field: last_name
+            label: Last Name
+
+          - field: email
+            label: Email
+
+          - field: city
+            label: City
+
+
+
 
     chart:
       type: line
@@ -518,9 +605,6 @@ pages:
       x: order_date
       y: amount    
 
-    recentOrders:
-      entity: orders
-      dataSource: orders
-      limit: 10
+
 
                      
