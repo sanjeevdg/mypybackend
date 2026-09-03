@@ -554,6 +554,7 @@ pages:
           xs: 12
           md: 8
         chart:
+          type: bar
           entity: orders
           x: order_date
           y: amount 
