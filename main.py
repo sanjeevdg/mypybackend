@@ -435,7 +435,9 @@ def migrate_orders_amount():
 def get_chart_data(
     entity: str,
     x: str,
-    y: str
+    y: str,
+    filter_field: str | None = None,
+    filter_value: str | None = None
 ):
 
     # -----------------------------------------
@@ -470,24 +472,64 @@ def get_chart_data(
         )
 
     # -----------------------------------------
+    # FILTER VALIDATION
+    # -----------------------------------------
+
+    if filter_field is not None:
+
+        if filter_field not in table.c:
+
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown filter field '{filter_field}' in '{entity}'"
+            )
+
+        if filter_value is None:
+
+            raise HTTPException(
+                status_code=400,
+                detail="filter_value is required when filter_field is provided"
+            )
+
+    # -----------------------------------------
     # QUERY
     # -----------------------------------------
 
-    sql = text(
-        f"""
+    sql_string = f"""
         SELECT
             {x},
             {y}
         FROM {entity}
         WHERE {x} IS NOT NULL
           AND {y} IS NOT NULL
-        ORDER BY {x}
+    """
+
+    params = {}
+
+    if filter_field is not None:
+
+        sql_string += f"""
+          AND {filter_field} = :filter_value
         """
-    )
+
+        params["filter_value"] = filter_value
+
+    sql_string += f"""
+        ORDER BY {x}
+    """
+
+    sql = text(sql_string)
+
+    # -----------------------------------------
+    # EXECUTE QUERY
+    # -----------------------------------------
 
     with engine.connect() as conn:
 
-        rows = conn.execute(sql).mappings().all()
+        rows = conn.execute(
+            sql,
+            params
+        ).mappings().all()
 
     # -----------------------------------------
     # RETURN CHART DATA

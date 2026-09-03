@@ -470,7 +470,10 @@ pages:
       - id: total_customers
         type: stat
         title: "Total Customers"
-
+        layout:
+          xs: 12
+          sm: 6
+          md: 3
         source:
           entity: customers
           aggregate: count
@@ -479,7 +482,10 @@ pages:
       - id: total_orders
         type: stat
         title: "Total Orders"
-
+        layout:
+          xs: 12
+          sm: 6
+          md: 3
         source:
           entity: orders
           aggregate: count
@@ -492,7 +498,10 @@ pages:
       - id: total_revenue
         type: stat
         title: "Total Revenue"
-
+        layout:
+          xs: 12
+          sm: 6
+          md: 3
         source:
           entity: orders
           field: amount
@@ -506,7 +515,10 @@ pages:
       - id: pending_orders
         type: stat
         title: "Pending Orders"
-
+        layout:
+          xs: 12
+          sm: 6
+          md: 3
         source:
           entity: orders
           field: status
@@ -521,7 +533,10 @@ pages:
       - id: approved_orders
         type: stat
         title: "Approved Orders"
-
+        layout:
+          xs: 12
+          sm: 6
+          md: 3
         source:
           entity: orders
           field: status
@@ -531,11 +546,26 @@ pages:
         filter:
           field: customer_id
           binding: selectedUser.id
+      
+      - id: orders_over_time
+        type: chart
+        title: "Orders Over Time"
+        layout:
+          xs: 12
+          md: 8
+        chart:
+          entity: orders
+          x: order_date
+          y: amount 
+        filter:
+          field: customer_id
+          binding: selectedUser.id  
 
       - id: recent_orders
         type: table
         title: "Recent Orders"
-
+        layout:
+          xs: 12
         source:
           entity: orders
           limit: 10
@@ -564,6 +594,8 @@ pages:
       - id: customer_list
         type: table
         title: "Customers"
+        layout:
+          xs: 12
         source:
           entity: customers
           columns:
@@ -577,7 +609,8 @@ pages:
       - id: customer_summary
         type: detail
         title: "Customer Details"
-
+        layout:
+          xs: 12
         source:
           entity: customers
           binding: selectedUser
