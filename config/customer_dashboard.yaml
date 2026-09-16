@@ -1,0 +1,23 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Dashboard
+    widgets:
+    - id: stat_1789562972120
+      type: stat
+      title: New stat
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: ''
+        aggregate: count
+    - id: stat_1789562972705
+      type: stat
+      title: New stat
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: ''
+        aggregate: count

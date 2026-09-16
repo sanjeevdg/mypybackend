@@ -1,0 +1,72 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Dashboard
+    widgets:
+    - id: stat_1789562972120
+      type: stat
+      title: total customers
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: customers
+        aggregate: count
+        field: ''
+    - id: stat_1789562972705
+      type: stat
+      title: Sum orders
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: orders
+        aggregate: sum
+        field: amount
+    - id: table_1789567611366
+      type: table
+      title: New table
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: orders
+        columns:
+        - field: id
+          label: Order ID
+          format: number
+        - field: order_date
+          label: Order Date
+          format: date
+        - field: amount
+          label: Amount
+          format: currency
+        limit: 10
+    - id: detail_1789567627256
+      type: detail
+      title: New detail
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: orders
+        binding: selectedRecord
+      fields:
+      - field: id
+        label: id
+      - field: customer_id
+        label: Customer
+      - field: order_date
+        label: Order Date
+      - field: product
+        label: Product
+    - id: stat_1789567770924
+      type: stat
+      title: total orders
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: orders
+        aggregate: count
+        field: ''

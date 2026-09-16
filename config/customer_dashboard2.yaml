@@ -1,0 +1,48 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Dashboard
+    widgets:
+    - id: table_1789454096936
+      type: table
+      title: New table
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: customers
+        columns:
+        - field: id
+          label: id
+        - field: first_name
+          label: First Name
+        - field: last_name
+          label: Last Name
+        limit: 10
+    - id: detail_1789454105333
+      type: detail
+      title: New detail
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: customers
+        binding: selectedRecord
+      fields:
+      - field: id
+        label: id
+      - field: first_name
+        label: First Name
+      - field: last_name
+        label: Last Name
+      - field: email
+        label: Email
+    - id: stat_1789559052621
+      type: stat
+      title: New stat
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: ''
+        aggregate: count

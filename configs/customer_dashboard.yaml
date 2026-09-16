@@ -1,0 +1,47 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Dashboard
+    widgets:
+    - id: table_1789453577526
+      type: table
+      title: New table
+      layout:
+        xs: 12
+        md: 12
+      source:
+        entity: customers
+        columns:
+        - field: id
+          label: id
+        - field: first_name
+          label: First Name
+        - field: last_name
+          label: Last Name
+        - field: city
+          label: City
+        limit: 10
+    - id: detail_1789453625351
+      type: detail
+      title: New detail
+      layout:
+        xs: 12
+        md: 12
+      source:
+        entity: customers
+        binding: selectedRecord
+      fields:
+      - field: id
+        label: id
+      - field: first_name
+        label: First Name
+      - field: last_name
+        label: Last Name
+      - field: email
+        label: Email
+      - field: age
+        label: Age
+      - field: gender
+        label: Gender
+      - field: city
+        label: City

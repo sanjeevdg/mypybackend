@@ -19,7 +19,9 @@ from readers.ods_reader import OdsReader
 from readers.odp_reader import OdpReader
 from readers.pptx_reader import PptxReader
 
+from pydantic import BaseModel
 import yaml
+
 from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal, metadata
@@ -50,7 +52,9 @@ pwd_context = CryptContext(
     deprecated="auto"
 )
 
-
+class SaveConfigRequest(BaseModel):
+    name: str
+    config: dict
 
 def rebuild_schema():
 
@@ -127,6 +131,17 @@ READERS = [
 def get_config(name: str = "app"):
 
     config_file = CONFIG_DIR / f"{name}.yaml"
+
+
+    print("========== CONFIG DEBUG ==========")
+    print("Current working directory:", Path.cwd())
+    print("CONFIG_DIR:", CONFIG_DIR)
+    print("CONFIG_DIR absolute:", CONFIG_DIR.resolve())
+    print("Requested name:", name)
+    print("Config file:", config_file)
+    print("Config file absolute:", config_file.resolve())
+    print("Config file exists:", config_file.exists())
+    print("Files in config directory:")
 
     if not config_file.exists():
         raise HTTPException(
@@ -365,7 +380,66 @@ def login(data: dict):
         db.close()
 
 
+@app.post("/api/config/save")
+def save_config(request: SaveConfigRequest):
 
+    try:
+
+        # Directory containing YAML configuration files
+        config_dir = Path("config")
+
+        # Make sure the directory exists
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        # Prevent accidental directory traversal
+        safe_name = Path(
+            request.name.strip().strip("'\"")
+        ).name
+
+        if not safe_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Configuration name is required"
+            )
+
+        # Add .yaml extension if necessary
+        if not safe_name.endswith(".yaml"):
+            safe_name += ".yaml"
+
+        config_path = config_dir / safe_name
+
+        # Write YAML
+        with open(
+            config_path,
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            yaml.safe_dump(
+                request.config,
+                file,
+                sort_keys=False,
+                allow_unicode=True
+            )
+
+        return {
+            "success": True,
+            "message": "Configuration saved successfully",
+            "name": safe_name,
+            "path": str(config_path)
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        print("SAVE CONFIG ERROR:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 @app.post("/api/read-file")
 async def read_file(file: UploadFile = File(...)):

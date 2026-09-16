@@ -1,0 +1,14 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: My Snazzy Dashboard2
+    widgets:
+    - id: stat_1789569816516
+      type: stat
+      title: 'my total customers '
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: customers
+        aggregate: count

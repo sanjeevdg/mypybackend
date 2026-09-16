@@ -1,0 +1,15 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: My Snazzy Dashboard
+    widgets:
+    - id: stat_1789568675819
+      type: stat
+      title: New stat
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: orders
+        aggregate: count
+        field: ''

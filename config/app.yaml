@@ -6,7 +6,7 @@ database:
   host: "ep-solitary-meadow-593229-pooler.ap-southeast-1.aws.neon.tech"
   database: "meddb"
   user: "sanjeev.dasgupta"
-  password: "npg_UbAvJimN3hE0"
+  password: "npg_VclBoWuzM56S"
 
 entities:
   users:
