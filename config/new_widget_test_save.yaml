@@ -1,0 +1,90 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Widget Test Save
+    widgets:
+    - id: datagrid_1789821491199
+      type: datagrid
+      title: New datagrid
+      layout:
+        xs: 12
+        md: 12
+      source:
+        entity: customers
+        columns:
+        - field: id
+          label: id
+        - field: first_name
+          label: First Name
+        - field: last_name
+          label: Last Name
+        - field: email
+          label: Email
+        - field: age
+          label: Age
+        - field: gender
+          label: Gender
+        - field: city
+          label: City
+        - field: active
+          label: Active
+        checkboxSelection: true
+    - id: textfield_1789822838935
+      type: textfield
+      title: New textfield
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: My Fullname
+        placeholder: aaaa aaaa
+        defaultValue: my name
+        variant: outlined
+        multiline: true
+        required: true
+    - id: select_1789823839912
+      type: select
+      title: New select
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Gender
+        defaultValue: Male
+        options:
+        - value: Female
+          label: F
+        - value: M
+          label: Male
+    - id: checkbox_1789824117500
+      type: checkbox
+      title: New checkbox
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Please check this box.
+        defaultChecked: true
+        required: false
+    - id: checkbox_1789824178861
+      type: checkbox
+      title: New checkbox
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: This checkbox is optional.
+    - id: radio_1789824353348
+      type: radio
+      title: New radio
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Select any one option
+        orientation: row
+        options:
+        - value: M
+          label: Male
+        - value: F
+          label: Female

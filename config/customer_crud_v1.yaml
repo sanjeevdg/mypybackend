@@ -1,0 +1,154 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Customer Crud V1
+    entity: customers
+    widgets:
+    - id: typography_1789907992299
+      type: typography
+      title: New typography
+      layout:
+        xs: 12
+        md: 12
+      text: Add new customer
+      props:
+        variant: h3
+    - id: textfield_1789906881496
+      type: textfield
+      title: New textfield
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Firstname
+        field: first_name
+        required: true
+      alignment: right
+    - id: textfield_1789906882736
+      type: textfield
+      title: New textfield
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Lastname
+        field: last_name
+        required: true
+    - id: textfield_1789906886441
+      type: textfield
+      title: New textfield
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Email
+        field: email
+        required: true
+    - id: textfield_1789906887484
+      type: textfield
+      title: New textfield
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Age
+        field: age
+    - id: select_1789906929029
+      type: select
+      title: New select
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: Gender
+        field: gender
+        options:
+        - value: Male
+          label: Male
+        - value: Female
+          label: Female
+        - value: Other
+          label: Other
+    - id: select_1789907051023
+      type: select
+      title: New select
+      layout:
+        xs: 12
+        md: 6
+      props:
+        label: City
+        options:
+        - value: Mumbai
+          label: Mumbai
+        - value: Delhi
+          label: Delhi
+        - value: Kolkata
+          label: Kolkata
+        - value: Chennai
+          label: Chennai
+        - value: Bangalore
+          label: Bangalore
+        - value: Pune
+          label: Pune
+        field: city
+    - id: checkbox_1789907062874
+      type: checkbox
+      title: New checkbox
+      layout:
+        xs: 12
+        md: 2
+      props:
+        label: Active
+        field: active
+        defaultChecked: true
+      alignment: right
+    - id: button_1789908052351
+      type: button
+      title: New button
+      layout:
+        xs: 12
+        md: 12
+      text: Add Or Edit
+      props:
+        variant: contained
+        size: large
+        fullWidth: false
+      events:
+        onClick: save
+      feedback:
+        success: Success message saying something
+        error: Error message saying something
+    - id: typography_1790083584676
+      type: typography
+      title: New typography
+      layout:
+        xs: 12
+        md: 12
+      text: Customer List
+      props:
+        variant: h4
+    - id: datagrid_1790000538625
+      type: datagrid
+      title: New datagrid
+      layout:
+        xs: 12
+        md: 12
+      source:
+        entity: customers
+        columns:
+        - field: id
+          label: id
+        - field: first_name
+          label: First Name
+        - field: last_name
+          label: Last Name
+        - field: email
+          label: Email
+        - field: age
+          label: Age
+        - field: gender
+          label: Gender
+        - field: city
+          label: City
+        - field: active
+          label: Active
