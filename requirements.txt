@@ -16,6 +16,6 @@ striprtf
 pyyaml
 psycopg2-binary
 sqlalchemy
-dotenv
+python-dotenv
 passlib
 bcrypt==4.0.1
