@@ -1,0 +1,72 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Experiment
+    widgets:
+    - id: container_1790338010605
+      type: container
+      title: ''
+      layout:
+        xs: 12
+        md: 6
+      props:
+        title: Container
+      children:
+      - id: textfield_1790338023090
+        type: textfield
+        title: New textfield
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Enter something
+      - id: typography_1790338044790
+        type: typography
+        title: Title of some text
+        layout:
+          xs: 12
+          md: 6
+        text: 'Title of some text
+
+          '
+        props:
+          variant: h6
+          align: left
+      - id: radio_1790339011294
+        type: radio
+        title: New radio
+        layout:
+          xs: 12
+          md: 6
+        props:
+          options:
+          - value: aaaa
+            label: aaaa
+          - value: bbbb
+            label: bbbb
+          orientation: row
+    - id: container_1790338813446
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 6
+      props:
+        title: Container
+      children:
+      - id: typography_1790338816635
+        type: typography
+        title: New typography
+        layout:
+          xs: 12
+          md: 6
+        text: New Text
+        props:
+          variant: body1
+          align: left
+      - id: checkbox_1790338835098
+        type: checkbox
+        title: New checkbox
+        layout:
+          xs: 12
+          md: 6

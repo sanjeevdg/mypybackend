@@ -1,0 +1,86 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Accordion Test
+    widgets:
+    - id: container_1790684451144
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 6
+      props:
+        title: Container
+      children:
+      - id: accordion_1790684462124
+        type: accordion
+        title: New accordion
+        layout:
+          xs: 12
+          md: 6
+        sections:
+        - id: section_1790684462124
+          title: Section 1e
+          widgets:
+          - id: textfield_1790688036156
+            type: textfield
+            title: New textfield
+            layout:
+              xs: 12
+              md: 6
+            props:
+              label: section 1 tesctfield 2
+          - id: radio_1790688091953
+            type: radio
+            title: New radio
+            layout:
+              xs: 12
+              md: 6
+            props:
+              options:
+              - value: optionA
+                label: optionA
+              - value: optionB
+                label: optionB
+          expanded: true
+        - id: section_1790685334679
+          title: Section 2e
+          expanded: false
+          widgets:
+          - id: textfield_1790688070040
+            type: textfield
+            title: New textfield
+            layout:
+              xs: 12
+              md: 6
+          - id: radio_1790688096198
+            type: radio
+            title: New radio
+            layout:
+              xs: 12
+              md: 6
+        - id: section_1790685350435
+          title: Section 3e
+          expanded: false
+          widgets:
+          - id: textfield_1790688059138
+            type: textfield
+            title: New textfield
+            layout:
+              xs: 12
+              md: 6
+            props:
+              label: section 3 textfield 1
+          - id: select_1790688104297
+            type: select
+            title: New select
+            layout:
+              xs: 12
+              md: 6
+            props:
+              label: section 3 select 2
+              options:
+              - value: some
+                label: some
+              - value: more
+                label: more
