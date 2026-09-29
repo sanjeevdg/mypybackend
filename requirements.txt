@@ -15,6 +15,7 @@ beautifulsoup4
 striprtf
 pyyaml
 psycopg2-binary
+psycopg2
 sqlalchemy
 dotenv
 passlib
