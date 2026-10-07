@@ -1,0 +1,120 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Orders Crud V2
+    widgets:
+    - id: container_1791292263537
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: datagrid_1791292288404
+        type: datagrid
+        title: Orders List - click a row to edit
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: orders
+          columns:
+          - field: id
+            label: id
+          - field: customer_id
+            label: Customer
+          - field: order_date
+            label: Order Date
+          - field: status
+            label: Status
+          - field: createdAt
+            label: Created At
+          - field: updatedAt
+            label: Updated At
+    - id: container_1790950935727
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: select_1790950969188
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          source:
+            entity: customers
+            valueField: id
+            labelField: first_name
+          field: customer_id
+          label: Select Customer
+          formEntity: orders
+      - id: select_1790951008667
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Status
+          options:
+          - value: Draft
+            label: Draft
+          - value: Submitted
+            label: Submitted
+          - value: Approved
+            label: Approved
+          - value: Delivered
+            label: Delivered
+          formEntity: orders
+          field: status
+      - id: datePicker_1791357307128
+        type: datePicker
+        title: Date
+        layout:
+          xs: 12
+          md: 6
+        props:
+          field: order_date
+          label: Order Date
+          defaultValue: ''
+          required: false
+          readOnly: false
+          entity: orders
+    - id: container_1790951213242
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: button_1790951279332
+        type: button
+        title: New button
+        layout:
+          xs: 12
+          md: 6
+        text: Save
+        props:
+          variant: contained
+        events:
+          onClick: saveOrder
+        feedback:
+          success: Order save success
+          error: order save failed
+      - id: detailgrid_test
+        type: detailGrid
+        title: Order Items
+        props:
+          detailField: orderItems
+          source:
+            entity: inventory

@@ -996,7 +996,10 @@ def get_record(table: str, record_id: int):
         db.close()
 
 @app.get("/api/{table}")
-def list_records(table: str):
+def list_records(
+    table: str,
+    order_id: int | None = None
+):
 
     db = SessionLocal()
 
@@ -1009,9 +1012,22 @@ def list_records(table: str):
             if c.name != "password"
         ]
 
-        result = db.execute(
-            select(*columns)
-        )
+        query = select(*columns)
+
+        # Filter order_items when order_id is supplied
+        if order_id is not None:
+
+            if "order_id" not in t.c:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{table} does not support order_id filtering"
+                )
+
+            query = query.where(
+                t.c.order_id == order_id
+            )
+
+        result = db.execute(query)
 
         return [
             dict(row)
@@ -1043,21 +1059,38 @@ def update_record(table: str, id: int, data: dict):
 
     db = SessionLocal()
 
-    t = get_table(table)
+    try:
 
-    # Never update the primary key
-    data.pop("id", None)
+        t = get_table(table)
 
-    db.execute(
-        update(t)
-        .where(t.c.id == id)
-        .values(**data)
-    )
+        # Never update the primary key
+        data.pop("id", None)
 
-    db.commit()
-    db.close()
+        result = db.execute(
+            update(t)
+            .where(t.c.id == id)
+            .values(**data)
+            .returning(t)
+        )
 
-    return {"status": "updated"}
+        updated = result.mappings().first()
+
+        if updated is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"{table} record {id} not found"
+            )
+
+        db.commit()
+
+        return dict(updated)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
 
 
 

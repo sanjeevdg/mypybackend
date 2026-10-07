@@ -35,9 +35,9 @@ entities:
         type: select
         label: "Gender"
         options:
-        - Male
-        - Female
-        - Other
+          - Male
+          - Female
+          - Other
 
       - name: city
         type: select
@@ -53,6 +53,43 @@ entities:
       - name: active
         type: boolean
         label: "Active"
+
+
+  inventory:
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+
+      - name: sku
+        type: text
+        label: "SKU"
+        required: true
+
+      - name: name
+        type: text
+        label: "Product Name"
+        required: true
+
+      - name: description
+        type: text
+        label: "Description"
+
+      - name: price
+        type: currency
+        label: "Price"
+        required: true
+
+      - name: stock_quantity
+        type: number
+        label: "Stock Quantity"
+
+      - name: active
+        type: boolean
+        label: "Active"
+
 
   orders:
     key: id
@@ -76,18 +113,6 @@ entities:
         type: date
         label: "Order Date"
 
-      - name: product
-        type: text
-        label: "Product"
-
-      - name: quantity
-        type: number
-        label: "Quantity"
-
-      - name: amount
-        type: currency
-        label: "Amount"
-
       - name: status
         type: select
         label: "Status"
@@ -98,6 +123,16 @@ entities:
           - shipped
           - delivered
           - cancelled
+
+      - name: createdAt
+        type: datetime
+        label: "Created At"
+        readonly: true
+
+      - name: updatedAt
+        type: datetime
+        label: "Updated At"
+        readonly: true
 
 
     workflow:
@@ -135,6 +170,51 @@ entities:
           to: cancelled
 
 
+  order_items:
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+
+      - name: order_id
+        type: reference
+        label: "Order"
+        reference:
+          entity: orders
+          valueField: id
+          labelField: id
+          onDelete: cascade
+
+      - name: product_id
+        type: reference
+        label: "Product"
+        reference:
+          entity: inventory
+          valueField: id
+          labelField: name
+          onDelete: restrict
+
+      - name: quantity
+        type: number
+        label: "Quantity"
+
+      - name: amount
+        type: currency
+        label: "Amount"
+
+      - name: createdAt
+        type: datetime
+        label: "Created At"
+        readonly: true
+
+      - name: updatedAt
+        type: datetime
+        label: "Updated At"
+        readonly: true
+
+
 relationships:
 
   - parent: customers
@@ -142,12 +222,15 @@ relationships:
     parentKey: id
     childKey: customer_id
 
+  - parent: orders
+    child: order_items
+    parentKey: id
+    childKey: order_id
+
 
 pages:
 
-  
   customer:
-
     type: container
 
     props:

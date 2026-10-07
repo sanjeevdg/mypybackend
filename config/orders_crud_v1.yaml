@@ -1,0 +1,54 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: ''
+    widgets:
+    - id: container_1790827333075
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: select_1790827342528
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Customer
+          source:
+            entity: customers
+            valueField: id
+            labelField: first_name
+          field: customer_id
+          entity: orders
+      - id: select_1790919722938
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          field: status
+          label: Status
+          entity: orders
+          options:
+          - value: Shipped
+            label: Shipped
+          - value: Deliivered
+            label: Deliivered
+      - id: select_1790919853905
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          source:
+            entity: customers
+            valueField: id
+            labelField: last_name

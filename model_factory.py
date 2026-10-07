@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    MetaData,
     Table,
     Column,
     Integer,
@@ -7,10 +6,13 @@ from sqlalchemy import (
     Boolean,
     Date,
     DateTime,
-    ForeignKey
+    Numeric,
+    ForeignKey,
+    func
 )
+
 from database import metadata
- 
+
 
 TYPE_MAP = {
     "text": String,
@@ -25,8 +27,9 @@ TYPE_MAP = {
     "file": String,
     "autocomplete": String,
     "reference": Integer,
-    "currency": String
+    "currency": Numeric(12, 2)
 }
+
 
 def build_models(config):
 
@@ -76,6 +79,13 @@ def build_models(config):
 
                 target_entity = reference["entity"]
 
+                if target_entity not in config["entities"]:
+                    raise Exception(
+                        f"Reference field '{field_name}' "
+                        f"points to unknown entity "
+                        f"'{target_entity}'"
+                    )
+
                 target_table = config["entities"][target_entity].get(
                     "table",
                     target_entity
@@ -90,7 +100,11 @@ def build_models(config):
 
                 foreign_key = ForeignKey(
                     f"{target_table}.{target_column}",
-                    ondelete=on_delete.upper() if on_delete else None
+                    ondelete=(
+                        on_delete.upper()
+                        if on_delete
+                        else None
+                    )
                 )
 
                 columns.append(
@@ -104,6 +118,9 @@ def build_models(config):
             # -----------------------------
             # Normal field
             # -----------------------------
+            # -----------------------------
+            # Normal field
+            # -----------------------------
             else:
 
                 sql_type = TYPE_MAP.get(field_type)
@@ -113,12 +130,35 @@ def build_models(config):
                         f"Unknown field type: {field_type}"
                     )
 
-                columns.append(
-                    Column(
-                        field_name,
-                        sql_type
+                if field_name == "createdAt":
+
+                    columns.append(
+                        Column(
+                            field_name,
+                            sql_type,
+                            server_default=func.now()
+                        )
                     )
-                )
+
+                elif field_name == "updatedAt":
+
+                    columns.append(
+                        Column(
+                            field_name,
+                            sql_type,
+                            server_default=func.now(),
+                            onupdate=func.now()
+                        )
+                    )
+
+                else:
+
+                    columns.append(
+                        Column(
+                            field_name,
+                            sql_type
+                        )
+                    )
 
         print(
             f"Creating table: {db_table_name}"
