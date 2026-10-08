@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Depends, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request, APIRouter, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
 
 from readers.text_reader import TextReader
@@ -33,7 +33,6 @@ from pathlib import Path
 import uuid
 
 from database import metadata, engine
-from model_factory import build_models
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +45,7 @@ load_dotenv()
 
 #DATABASE_URL = os.getenv("DATABASE_URL")
 
+app_config = {}
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -92,11 +92,11 @@ def parse_file(filename: str, contents: bytes):
 
 def load_schema():
 
+    global app_config
     metadata.clear()
-
-    config = load_yaml()
-
-    build_models(config)
+    app_config = load_yaml()
+    #config = load_yaml()
+    build_models(app_config)
 
 
 @app.on_event("startup")
@@ -998,43 +998,209 @@ def get_record(table: str, record_id: int):
 @app.get("/api/{table}")
 def list_records(
     table: str,
-    order_id: int | None = None
+    request: Request
 ):
 
     db = SessionLocal()
 
     try:
 
+        # -------------------------------------------------
+        # Validate table
+        # -------------------------------------------------
+
+        if table not in metadata.tables:
+
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown table: {table}"
+            )
+
         t = metadata.tables[table]
 
+        # -------------------------------------------------
+        # Select columns
+        # -------------------------------------------------
+
         columns = [
-            c for c in t.c
+            c
+            for c in t.c
             if c.name != "password"
         ]
 
         query = select(*columns)
 
-        # Filter order_items when order_id is supplied
-        if order_id is not None:
+        # -------------------------------------------------
+        # Generic query-parameter filtering
+        #
+        # Example:
+        #
+        # /api/order_items?order_id=5
+        #
+        # becomes:
+        #
+        # order_items.order_id == 5
+        # -------------------------------------------------
 
-            if "order_id" not in t.c:
+        for field_name, field_value in request.query_params.items():
+
+            if field_name not in t.c:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"{table} does not support order_id filtering"
+                    detail=(
+                        f"Unknown filter field "
+                        f"'{field_name}' for table '{table}'"
+                    )
                 )
 
+            column = t.c[field_name]
+
+            # Convert numeric values when appropriate
+            try:
+
+                python_type = column.type.python_type
+
+                if python_type is int:
+                    converted_value = int(field_value)
+
+                elif python_type is float:
+                    converted_value = float(field_value)
+
+                elif python_type is bool:
+                    converted_value = (
+                        field_value.lower()
+                        in ("true", "1", "yes")
+                    )
+
+                else:
+                    converted_value = field_value
+
+            except (AttributeError, ValueError):
+
+                converted_value = field_value
+
             query = query.where(
-                t.c.order_id == order_id
+                column == converted_value
             )
+
+        # -------------------------------------------------
+        # Execute
+        # -------------------------------------------------
 
         result = db.execute(query)
 
-        return [
+        rows = [
             dict(row)
             for row in result.mappings()
         ]
 
+        # -------------------------------------------------
+        # Add reference display values
+        # -------------------------------------------------
+
+        entity_config = (
+            app_config
+            .get("entities", {})
+            .get(table, {})
+        )
+
+        fields_config = entity_config.get(
+            "fields",
+            []
+        )
+
+        for field_config in fields_config:
+
+            if field_config.get("type") != "reference":
+                continue
+
+            field_name = field_config.get("name")
+
+            reference = field_config.get(
+                "reference",
+                {}
+            )
+
+            target_entity = reference.get(
+                "entity"
+            )
+
+            value_field = reference.get(
+                "valueField",
+                "id"
+            )
+
+            label_field = reference.get(
+                "labelField",
+                value_field
+            )
+
+            if not target_entity:
+                continue
+
+            target_table = metadata.tables.get(
+                target_entity
+            )
+
+            if target_table is None:
+                continue
+
+            if field_name not in t.c:
+                continue
+
+            target_column = target_table.c.get(
+                value_field
+            )
+
+            target_label_column = target_table.c.get(
+                label_field
+            )
+
+            if (
+                target_column is None
+                or target_label_column is None
+            ):
+                continue
+
+            reference_values = {
+                row[field_name]
+                for row in rows
+                if row.get(field_name) is not None
+            }
+
+            if not reference_values:
+                continue
+
+            reference_query = select(
+                target_column,
+                target_label_column
+            ).where(
+                target_column.in_(
+                    reference_values
+                )
+            )
+
+            reference_result = db.execute(
+                reference_query
+            )
+
+            display_map = {
+                row[0]: row[1]
+                for row in reference_result
+            }
+
+            for row in rows:
+
+                value = row.get(field_name)
+
+                row[
+                    f"{field_name}__display"
+                ] = display_map.get(value)
+
+        return rows
+
     finally:
+
         db.close()
 
 @app.delete("/api/{table}/{id}")

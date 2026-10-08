@@ -23,7 +23,7 @@ pages:
           columns:
           - field: id
             label: id
-          - field: customer_id
+          - field: customer_id__display
             label: Customer
           - field: order_date
             label: Order Date
@@ -33,6 +33,24 @@ pages:
             label: Created At
           - field: updatedAt
             label: Updated At
+      - id: order_items_grid
+        type: datagrid
+        title: Order Items
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: order_items
+          filter:
+            field: order_id
+            valueFrom: formData.id
+          columns:
+            - field: product_id__display
+              label: Product
+            - field: quantity
+              label: Quantity
+            - field: amount
+              label: Amount            
     - id: container_1790950935727
       type: container
       title: New container
@@ -118,3 +136,4 @@ pages:
           detailField: orderItems
           source:
             entity: inventory
+
