@@ -149,9 +149,25 @@ def get_config(name: str = "app"):
             detail=f"Configuration '{name}.yaml' not found"
         )
 
+    
     try:
         with open(config_file, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f) or {}
+
+        # Load shared entity definitions
+        base_config = load_yaml()
+
+        # Add entities when the requested YAML does not define them
+        if "entities" not in config:
+            config["entities"] = base_config.get("entities", {})
+
+        # Add shared relationships when they are missing
+        if "relationships" not in config:
+            config["relationships"] = base_config.get(
+                "relationships", []
+            )
+
+        return config
 
     except yaml.YAMLError as e:
         raise HTTPException(

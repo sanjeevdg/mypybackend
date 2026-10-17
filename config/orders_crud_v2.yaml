@@ -134,6 +134,17 @@ pages:
         title: Order Items
         props:
           detailField: orderItems
+
           source:
-            entity: inventory
+            entity: order_items
+
+          columns:
+            - field: product_id
+              label: Product
+
+            - field: quantity
+              label: Quantity
+
+            - field: amount
+              label: Amount
 
