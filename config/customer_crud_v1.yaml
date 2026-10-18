@@ -47,6 +47,7 @@ pages:
         field: email
         required: true
         formEntity: customers
+        type: email
     - id: textfield_1789906887484
       type: textfield
       title: New textfield
@@ -57,6 +58,8 @@ pages:
         label: Age
         field: age
         formEntity: customers
+        required: true
+        numeric: true
     - id: select_1789906929029
       type: select
       title: New select
@@ -78,6 +81,7 @@ pages:
           entity: customers
           valueField: ''
           labelField: ''
+        required: true
     - id: select_1789907051023
       type: select
       title: New select
@@ -105,12 +109,13 @@ pages:
           entity: customers
           valueField: ''
           labelField: ''
+        required: true
     - id: checkbox_1789907062874
       type: checkbox
       title: New checkbox
       layout:
         xs: 12
-        md: 2
+        md: 12
       props:
         label: Active
         field: active
@@ -121,7 +126,7 @@ pages:
       title: New button
       layout:
         xs: 12
-        md: 12
+        md: 6
       text: Add Or Edit
       props:
         variant: contained
@@ -137,7 +142,7 @@ pages:
       title: New button
       layout:
         xs: 12
-        md: 12
+        md: 6
       text: DELETE
       props:
         variant: outlined
