@@ -1,0 +1,308 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Inventory Crud V1
+    widgets:
+    - id: container_1792417502906
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: datagrid_1792417549284
+        type: datagrid
+        title: I'm a datagrid in a container - you can change my layout in designer
+          mode
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: inventory
+          columns:
+          - field: id
+            label: id
+          - field: sku
+            label: SKU
+          - field: name
+            label: Product Name
+          - field: description
+            label: Description
+          - field: price
+            label: Price
+          - field: stock_quantity
+            label: Stock Quantity
+          - field: active
+            label: Active
+    - id: container_1792417709119
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 8
+      props:
+        title: Container
+      children:
+      - id: textfield_1792417722457
+        type: textfield
+        title: SKU
+        layout:
+          xs: 12
+          md: 8
+        props:
+          formEntity: inventory
+          field: sku
+          required: true
+      - id: textfield_1792417742774
+        type: textfield
+        title: Product Name
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: inventory
+          field: name
+          required: true
+      - id: textfield_1792417756703
+        type: textfield
+        title: Description
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: inventory
+          field: description
+          multiline: true
+          required: true
+      - id: textfield_1792417767202
+        type: textfield
+        title: Price
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: inventory
+          field: price
+          required: true
+          numeric: true
+      - id: textfield_1792417779599
+        type: textfield
+        title: Stock Quantity
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: inventory
+          field: stock_quantity
+          required: true
+          numeric: true
+      - id: checkbox_1792417799230
+        type: checkbox
+        title: New checkbox
+        layout:
+          xs: 12
+          md: 6
+        props:
+          field: active
+          formEntity: inventory
+          defaultChecked: true
+          required: false
+      - id: button_1792417815097
+        type: button
+        title: New button
+        layout:
+          xs: 12
+          md: 4
+        text: Save
+        props:
+          variant: contained
+          fullWidth: true
+        events:
+          onClick: saveInventory
+        feedback:
+          success: inventory save success
+          error: inventory save failed
+      - id: button_1792469562012
+        type: button
+        title: New button
+        layout:
+          xs: 12
+          md: 4
+        text: Delete
+        props:
+          variant: outlined
+          fullWidth: true
+entities:
+  customers:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: first_name
+      type: text
+      label: First Name
+      required: true
+    - name: last_name
+      type: text
+      label: Last Name
+      required: true
+    - name: email
+      type: email
+      label: Email
+      required: true
+    - name: age
+      type: number
+      label: Age
+    - name: gender
+      type: select
+      label: Gender
+      options:
+      - Male
+      - Female
+      - Other
+    - name: city
+      type: select
+      label: City
+      options:
+      - London
+      - Paris
+      - Delhi
+      - Kolkata
+      - Mumbai
+      - Bangalore
+    - name: active
+      type: boolean
+      label: Active
+  inventory:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: sku
+      type: text
+      label: SKU
+      required: true
+    - name: name
+      type: text
+      label: Product Name
+      required: true
+    - name: description
+      type: text
+      label: Description
+    - name: price
+      type: currency
+      label: Price
+      required: true
+    - name: stock_quantity
+      type: number
+      label: Stock Quantity
+    - name: active
+      type: boolean
+      label: Active
+  orders:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: customer_id
+      type: reference
+      label: Customer
+      readonly: false
+      reference:
+        entity: customers
+        valueField: id
+        labelField: first_name
+        onDelete: cascade
+    - name: order_date
+      type: date
+      label: Order Date
+    - name: status
+      type: select
+      label: Status
+      options:
+      - draft
+      - submitted
+      - approved
+      - shipped
+      - delivered
+      - cancelled
+    - name: createdAt
+      type: datetime
+      label: Created At
+      readonly: true
+    - name: updatedAt
+      type: datetime
+      label: Updated At
+      readonly: true
+    workflow:
+      initialState: draft
+      transitions:
+      - action: submit
+        label: Submit
+        from: draft
+        to: submitted
+      - action: approve
+        label: Approve
+        from: submitted
+        to: approved
+      - action: ship
+        label: Ship
+        from: approved
+        to: shipped
+      - action: deliver
+        label: Deliver
+        from: shipped
+        to: delivered
+      - action: cancel
+        label: Cancel
+        from:
+        - draft
+        - submitted
+        - approved
+        to: cancelled
+  order_items:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: order_id
+      type: reference
+      label: Order
+      reference:
+        entity: orders
+        valueField: id
+        labelField: id
+        onDelete: cascade
+    - name: product_id
+      type: reference
+      label: Product
+      reference:
+        entity: inventory
+        valueField: id
+        labelField: name
+        onDelete: restrict
+    - name: quantity
+      type: number
+      label: Quantity
+    - name: amount
+      type: currency
+      label: Amount
+    - name: createdAt
+      type: datetime
+      label: Created At
+      readonly: true
+    - name: updatedAt
+      type: datetime
+      label: Updated At
+      readonly: true
+relationships:
+- parent: customers
+  child: orders
+  parentKey: id
+  childKey: customer_id
+- parent: orders
+  child: order_items
+  parentKey: id
+  childKey: order_id
