@@ -120,6 +120,7 @@ pages:
         label: Active
         field: active
         defaultChecked: true
+        formEntity: customers
       alignment: right
     - id: button_1789908052351
       type: button

@@ -90,6 +90,8 @@ entities:
         type: boolean
         label: "Active"
 
+      - name: images
+        type: json   
 
   orders:
     key: id

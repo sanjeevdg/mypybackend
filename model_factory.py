@@ -7,6 +7,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Numeric,
+    JSON,
     ForeignKey,
     func
 )
@@ -27,7 +28,8 @@ TYPE_MAP = {
     "file": String,
     "autocomplete": String,
     "reference": Integer,
-    "currency": Numeric(12, 2)
+    "currency": Numeric(12, 2),
+    "json": JSON
 }
 
 
@@ -159,7 +161,10 @@ def build_models(config):
                             sql_type
                         )
                     )
-
+        print(
+            f"Fields for {entity_name}:",
+            [field["name"] for field in entity["fields"]]
+        )            
         print(
             f"Creating table: {db_table_name}"
         )

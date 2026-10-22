@@ -41,7 +41,7 @@ pages:
       title: New container
       layout:
         xs: 12
-        md: 8
+        md: 12
       props:
         title: Container
       children:
@@ -109,12 +109,23 @@ pages:
           formEntity: inventory
           defaultChecked: true
           required: false
-      - id: button_1792417815097
+      - id: images_1792651554490
+        type: images
+        title: Multiple Images
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Upload Images
+          formEntity: inventory
+          field: images
+          maxImages: 10
+      - id: button_1792675185836
         type: button
         title: New button
         layout:
           xs: 12
-          md: 4
+          md: 6
         text: Save
         props:
           variant: contained
@@ -124,16 +135,6 @@ pages:
         feedback:
           success: inventory save success
           error: inventory save failed
-      - id: button_1792469562012
-        type: button
-        title: New button
-        layout:
-          xs: 12
-          md: 4
-        text: Delete
-        props:
-          variant: outlined
-          fullWidth: true
 entities:
   customers:
     key: id
@@ -201,6 +202,8 @@ entities:
     - name: active
       type: boolean
       label: Active
+    - name: images
+      type: json
   orders:
     key: id
     fields:

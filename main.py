@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Request, APIRouter, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
-
+import cloudinary
+import cloudinary.uploader
 from readers.text_reader import TextReader
 from readers.code_reader import CodeReader
 from readers.csv_reader import CsvReader
@@ -18,6 +19,8 @@ from readers.excel_reader import ExcelReader
 from readers.ods_reader import OdsReader
 from readers.odp_reader import OdpReader
 from readers.pptx_reader import PptxReader
+
+from urllib.parse import urlparse
 
 from pydantic import BaseModel
 import yaml
@@ -521,6 +524,7 @@ def migrate_orders_amount():
             detail=str(e)
         )
 
+
 @app.get("/api/chart")
 def get_chart_data(
     entity: str,
@@ -529,13 +533,16 @@ def get_chart_data(
     filter_field: str | None = None,
     filter_value: str | None = None
 ):
+    from sqlalchemy import text
+    from fastapi import HTTPException
+    from datetime import date, datetime
+    from decimal import Decimal
 
     # -----------------------------------------
     # ENTITY VALIDATION
     # -----------------------------------------
 
     if entity not in metadata.tables:
-
         raise HTTPException(
             status_code=400,
             detail=f"Unknown entity: {entity}"
@@ -548,14 +555,12 @@ def get_chart_data(
     # -----------------------------------------
 
     if x not in table.c:
-
         raise HTTPException(
             status_code=400,
             detail=f"Unknown x field '{x}' in '{entity}'"
         )
 
     if y not in table.c:
-
         raise HTTPException(
             status_code=400,
             detail=f"Unknown y field '{y}' in '{entity}'"
@@ -566,58 +571,66 @@ def get_chart_data(
     # -----------------------------------------
 
     if filter_field is not None:
-
         if filter_field not in table.c:
-
             raise HTTPException(
                 status_code=400,
-                detail=f"Unknown filter field '{filter_field}' in '{entity}'"
+                detail=(
+                    f"Unknown filter field "
+                    f"'{filter_field}' in '{entity}'"
+                )
             )
 
         if filter_value is None:
-
             raise HTTPException(
                 status_code=400,
-                detail="filter_value is required when filter_field is provided"
+                detail=(
+                    "filter_value is required when "
+                    "filter_field is provided"
+                )
             )
 
     # -----------------------------------------
     # QUERY
     # -----------------------------------------
 
+    # Quote identifiers using the active database dialect.
+    preparer = engine.dialect.identifier_preparer
+
+    q_entity = preparer.quote(entity)
+    q_x = preparer.quote(x)
+    q_y = preparer.quote(y)
+
     sql_string = f"""
         SELECT
-            {x},
-            {y}
-        FROM {entity}
-        WHERE {x} IS NOT NULL
-          AND {y} IS NOT NULL
+            {q_x} AS x_value,
+            {q_y} AS y_value
+        FROM {q_entity}
+        WHERE {q_x} IS NOT NULL
+          AND {q_y} IS NOT NULL
     """
 
     params = {}
 
     if filter_field is not None:
+        q_filter = preparer.quote(filter_field)
 
         sql_string += f"""
-          AND {filter_field} = :filter_value
+          AND {q_filter} = :filter_value
         """
 
         params["filter_value"] = filter_value
 
     sql_string += f"""
-        ORDER BY {x}
+        ORDER BY {q_x}
     """
-
-    sql = text(sql_string)
 
     # -----------------------------------------
     # EXECUTE QUERY
     # -----------------------------------------
 
     with engine.connect() as conn:
-
         rows = conn.execute(
-            sql,
+            text(sql_string),
             params
         ).mappings().all()
 
@@ -625,16 +638,40 @@ def get_chart_data(
     # RETURN CHART DATA
     # -----------------------------------------
 
+    def serialize_value(value):
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+
+        if isinstance(value, Decimal):
+            return float(value)
+
+        return value
+
     result = []
 
     for row in rows:
+        x_value = serialize_value(row["x_value"])
+        y_value = serialize_value(row["y_value"])
+
+        # Convert Y to a number only when it is numeric.
+        # Keep categorical values such as "Draft" as strings.
+        if isinstance(y_value, bool):
+            pass
+        elif isinstance(y_value, (int, float)):
+            pass
+        else:
+            try:
+                y_value = float(y_value)
+            except (ValueError, TypeError):
+                pass
 
         result.append({
-            "x": row[x],
-            "y": float(row[y])
+            "x": x_value,
+            "y": y_value
         })
 
     return result
+
 
 @app.post("/api/stats")
 def get_stats(payload: dict[str, Any] = Body(...)):
@@ -1275,6 +1312,364 @@ def update_record(table: str, id: int, data: dict):
         db.close()
 
 
+@app.post("/api/admin/add-inventory-images")
+def add_inventory_images():
+
+    db = SessionLocal()
+
+    try:
+        db.execute(text("""
+            ALTER TABLE inventory
+            ADD COLUMN IF NOT EXISTS images JSON
+            NOT NULL DEFAULT '[]'::json
+        """))
+
+        db.commit()
+
+        # Reload metadata so the dynamic model includes
+        # the newly added database column.
+        load_schema()
+
+        return {
+            "status": "ok",
+            "message": "Inventory images column is ready."
+        }
+
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+        db.close()
+
+
+@app.post("/api/inventory/{inventory_id}/images")
+def upload_inventory_images(
+    inventory_id: int,
+    files: list[UploadFile] = File(...)
+):
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB per image
+    MAX_IMAGES = 10
+
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="Please select at least one image."
+        )
+
+    if len(files) > MAX_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You can upload at most {MAX_IMAGES} images at a time."
+        )
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise HTTPException(
+            status_code=500,
+            detail="Cloudinary environment variables are not configured."
+        )
+
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True
+    )
+
+    uploaded_urls = []
+    db = SessionLocal()
+
+    try:
+        t = get_table("inventory")
+
+        # Confirm the inventory item exists.
+        existing = db.execute(
+            select(t.c.id).where(t.c.id == inventory_id)
+        ).first()
+
+        if existing is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Inventory item {inventory_id} not found."
+            )
+        print("INVENTORY TABLE COLUMNS:", list(t.c.keys()))    
+        if "images" not in t.c:
+            raise HTTPException(
+                status_code=500,
+                detail="Inventory images column is missing."
+            )
+
+        # Validate and upload each image.
+        for file in files:
+            if file.content_type not in (
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/gif"
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported image type: {file.filename}"
+                )
+
+            content = file.file.read(MAX_FILE_SIZE + 1)
+
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{file.filename} exceeds the 5 MB limit."
+                )
+
+            if not content:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{file.filename} is empty."
+                )
+
+            # Reset the stream before passing it to Cloudinary.
+            file.file.seek(0)
+
+            result = cloudinary.uploader.upload(
+                file.file,
+                folder=f"inventory/{inventory_id}",
+                resource_type="image"
+            )
+
+            uploaded_urls.append(result["secure_url"])
+
+        # Preserve existing images and append the new URLs.
+        row = db.execute(
+            select(t.c.images).where(t.c.id == inventory_id)
+        ).first()
+
+        existing_urls = list(row[0] or [])
+
+        updated_urls = existing_urls + uploaded_urls
+
+        db.execute(
+            update(t)
+            .where(t.c.id == inventory_id)
+            .values(images=updated_urls)
+        )
+
+        db.commit()
+
+        return {
+            "status": "ok",
+            "inventory_id": inventory_id,
+            "images": updated_urls,
+            "uploaded_count": len(uploaded_urls)
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image upload failed: {str(e)}"
+        )
+
+    finally:
+        db.close()
+
+        for file in files:
+            file.file.close()
+
+
+
+
+
+@app.delete("/api/inventory/{inventory_id}/images")
+def remove_inventory_image(inventory_id: int, url: str):
+    db = SessionLocal()
+
+    try:
+        t = get_table("inventory")
+
+        row = db.execute(
+            select(t.c.images)
+            .where(t.c.id == inventory_id)
+        ).first()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Inventory item not found."
+            )
+
+        images = list(row[0] or [])
+
+        if url not in images:
+            raise HTTPException(
+                status_code=404,
+                detail="Image not found on this inventory item."
+            )
+
+        # Remove the image URL from the database array.
+        updated_images = [image for image in images if image != url]
+
+        db.execute(
+            update(t)
+            .where(t.c.id == inventory_id)
+            .values(images=updated_images)
+        )
+        db.commit()
+
+        # Best-effort deletion from Cloudinary.
+        # A Cloudinary deletion failure won't undo the database change.
+        try:
+            parsed = urlparse(url)
+            parts = parsed.path.split("/")
+
+            upload_index = parts.index("upload")
+            public_id_parts = parts[upload_index + 1:]
+
+            # Remove the version component, such as v1792648938.
+            if public_id_parts and public_id_parts[0].startswith("v"):
+                public_id_parts = public_id_parts[1:]
+
+            public_id = "/".join(public_id_parts)
+
+            # Remove the file extension.
+            public_id = public_id.rsplit(".", 1)[0]
+
+            cloudinary.config(
+                cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+                api_key=os.getenv("CLOUDINARY_API_KEY"),
+                api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+                secure=True
+            )
+
+            cloudinary.uploader.destroy(
+                public_id,
+                resource_type="image"
+            )
+        except Exception as cloudinary_error:
+            print("Cloudinary image deletion failed:", cloudinary_error)
+
+        return {
+            "status": "ok",
+            "inventory_id": inventory_id,
+            "images": updated_images
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        db.close()
+
+
+
+
+
+@app.post("/api/inventory/images/upload")
+def upload_inventory_images_before_save(
+    files: list[UploadFile] = File(...)
+):
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB per image
+    MAX_IMAGES = 10
+
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="Please select at least one image."
+        )
+
+    if len(files) > MAX_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You can upload at most {MAX_IMAGES} images at a time."
+        )
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise HTTPException(
+            status_code=500,
+            detail="Cloudinary environment variables are not configured."
+        )
+
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True
+    )
+
+    uploaded_urls = []
+
+    try:
+        for file in files:
+            if file.content_type not in (
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+                "image/gif"
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported image type: {file.filename}"
+                )
+
+            content = file.file.read(MAX_FILE_SIZE + 1)
+
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{file.filename} exceeds the 5 MB limit."
+                )
+
+            if not content:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{file.filename} is empty."
+                )
+
+            file.file.seek(0)
+
+            result = cloudinary.uploader.upload(
+                file.file,
+                folder="inventory/pending",
+                resource_type="image"
+            )
+
+            uploaded_urls.append(result["secure_url"])
+
+        return {
+            "status": "ok",
+            "images": uploaded_urls,
+            "uploaded_count": len(uploaded_urls)
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image upload failed: {str(e)}"
+        )
+
+    finally:
+        for file in files:
+            file.file.close()
 
 
 

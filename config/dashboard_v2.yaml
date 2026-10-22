@@ -1,0 +1,94 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Dashboard V2
+    widgets:
+    - id: container_1792641514999
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 4
+      props:
+        title: Container
+      children:
+      - id: chart_1792641520944
+        type: chart
+        title: Customers By City
+        layout:
+          xs: 12
+          md: 4
+        chart:
+          type: pie
+          entity: customers
+          x: id
+          y: city
+      - id: stat_1792641770989
+        type: stat
+        title: Total Customers
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: customers
+          aggregate: count
+    - id: container_1792642145133
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 4
+      props:
+        title: Container
+      children:
+      - id: chart_1792642152992
+        type: chart
+        title: Orders By Status
+        layout:
+          xs: 12
+          md: 6
+        chart:
+          type: pie
+          entity: orders
+          x: customer_id
+          y: status
+      - id: stat_1792642164905
+        type: stat
+        title: Total Orders
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: orders
+          aggregate: count
+          field: ''
+    - id: container_1792642967740
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 4
+      props:
+        title: Container
+      children:
+      - id: chart_1792642980309
+        type: chart
+        title: Inventory By Quantity
+        layout:
+          xs: 12
+          md: 6
+        chart:
+          type: pie
+          entity: inventory
+          x: id
+          y: stock_quantity
+      - id: stat_1792642994883
+        type: stat
+        title: 'Total Inventory '
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: inventory
+          aggregate: count
+          field: ''
