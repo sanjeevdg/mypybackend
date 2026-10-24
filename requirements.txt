@@ -21,3 +21,4 @@ passlib
 bcrypt==4.0.1
 cloudinary
 python-jose[cryptography]
+email-validator
