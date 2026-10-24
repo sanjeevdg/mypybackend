@@ -1,0 +1,11 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: New Payment
+    widgets:
+    - id: payment_1792731712269
+      type: payment
+      title: New payment
+      layout:
+        xs: 12
+        md: 6

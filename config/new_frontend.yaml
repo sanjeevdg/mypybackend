@@ -3,12 +3,18 @@ pages:
     type: dashboard
     title: New Frontend
     widgets:
+    - id: shoppingCart_1792733668138
+      type: shoppingCart
+      title: New shoppingCart
+      layout:
+        xs: 12
+        md: 12
     - id: productCard_1792680623937
       type: productCard
       title: Product Card
       layout:
         xs: 12
-        md: 6
+        md: 12
       props:
         entity: inventory
         titleField: name
@@ -17,10 +23,56 @@ pages:
         imageField: images
         skuField: sku
         stockField: stock_quantity
-        columns: 2
+        columns: 3
         imageMode: thumbnails
         showPrice: true
         showStock: true
+
+navigation:
+  enabled: true
+
+  brand:
+    title: My Application
+
+  topMenu:
+    - id: profile
+      label: Profile
+      icon: user
+      children:
+        - id: my_profile
+          label: My Profile
+          route: /dashboard/my_profile
+
+        - id: logout
+          label: Logout
+          action: logout
+
+  sidebar:
+    - id: dashboard
+      label: Dashboard
+      icon: dashboard
+      route: /dashboard/new_frontend
+
+    - id: products
+      label: Products
+      icon: inventory
+      route: /dashboard/inventory_crud_v1
+
+    - id: orders
+      label: Orders
+      icon: shopping-cart
+      route: /dashboard/orders
+
+    - id: profile
+      label: Profile
+      icon: user
+      route: /dashboard/my_profile
+
+    - id: logout
+      label: Logout
+      icon: logout
+      action: logout
+        
 entities:
   customers:
     key: id

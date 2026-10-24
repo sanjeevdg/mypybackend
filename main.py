@@ -22,7 +22,7 @@ from readers.pptx_reader import PptxReader
 
 from urllib.parse import urlparse
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 import yaml
 
 from config_loader import load_yaml
@@ -30,6 +30,7 @@ from model_factory import build_models, metadata
 from database import engine, SessionLocal, metadata
 
 from sqlalchemy import insert, select, delete, update, create_engine, text
+from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
 
 from pathlib import Path
@@ -43,6 +44,14 @@ CONFIG_DIR = Path("config")
 
 from dotenv import load_dotenv
 import os
+from auth import auth_users, create_auth_table
+from auth_security import (
+    create_access_token,
+    get_current_user,
+    require_admin
+)
+
+
 
 load_dotenv()
 
@@ -128,7 +137,14 @@ READERS = [
     PptxReader(),
 ]
 
-
+@app.get("/api/me")
+def get_my_account(
+    current_user: dict = Depends(get_current_user)
+):
+    return {
+        "status": "ok",
+        "user": current_user
+    }
 
 @app.get("/api/config")
 def get_config(name: str = "app"):
@@ -340,6 +356,89 @@ def change_password(data: dict):
         db.close()
 
 
+
+
+
+
+
+
+
+class SignupRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=10, max_length=72)
+
+
+@app.post("/api/signup", status_code=201)
+def signup(data: SignupRequest):
+    email = str(data.email).strip().lower()
+    password = data.password
+
+    # bcrypt has a 72-byte password limit.
+    if len(password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be no more than 72 bytes."
+        )
+
+    with SessionLocal() as db:
+        existing = db.execute(
+            select(auth_users.c.id).where(
+                auth_users.c.email == email
+            )
+        ).first()
+
+        if existing:
+            raise HTTPException(
+                status_code=409,
+                detail="An account with this email already exists."
+            )
+
+        password_hash = pwd_context.hash(password)
+
+        try:
+            result = db.execute(
+                insert(auth_users).values(
+                    email=email,
+                    password_hash=password_hash,
+                    role="user",
+                    is_active=True
+                ).returning(auth_users.c.id)
+            )
+
+            user_id = result.scalar_one()
+            db.commit()
+
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="An account with this email already exists."
+            )
+
+    return {
+        "status": "ok",
+        "message": "Account created successfully.",
+        "user": {
+            "id": user_id,
+            "email": email,
+            "role": "user"
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.post("/api/login")
 def login(data: dict):
 
@@ -352,51 +451,64 @@ def login(data: dict):
             detail="Email and password are required"
         )
 
+    email = email.strip().lower()
+
     db = SessionLocal()
 
     try:
-
-        t = metadata.tables.get("users")
-
-        if t is None:
-            raise HTTPException(
-                status_code=500,
-                detail="Users table is not loaded"
-            )
-
         result = db.execute(
-            select(t).where(
-                t.c.email == email
+            select(auth_users).where(
+                auth_users.c.email == email
             )
         )
 
         user = result.mappings().first()
 
+        # Use the same generic message for an unknown email
+        # and an incorrect password.
         if user is None:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid email or password"
             )
 
-        if user["password"] != password:
+        if not pwd_context.verify(
+            password,
+            user["password_hash"]
+        ):
             raise HTTPException(
                 status_code=401,
                 detail="Invalid email or password"
             )
 
+        if not user["is_active"]:
+            raise HTTPException(
+                status_code=403,
+                detail="This account is inactive"
+            )
+
+        token = create_access_token({
+            "id": user["id"],
+            "email": user["email"],
+            "role": user["role"]
+        })
+
         return {
             "status": "ok",
             "message": "Login successful",
+            "access_token": token,
+            "token_type": "bearer",
+            "expires_in": 1800,
             "user": {
                 "id": user["id"],
                 "email": user["email"],
-                "first_name": user.get("first_name"),
-                "last_name": user.get("last_name")
+                "role": user["role"]
             }
         }
 
     finally:
         db.close()
+
 
 
 @app.post("/api/config/save")
@@ -978,7 +1090,11 @@ def drop_table(table: str):
         db.close()
 
 @app.post("/api/{table}")
-def create_record(table: str, data: dict):
+def create_record(
+    table: str,
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
 
     db = SessionLocal()
 
@@ -1011,7 +1127,11 @@ def create_record(table: str, data: dict):
         db.close()
 
 @app.get("/api/{table}/{record_id}")
-def get_record(table: str, record_id: int):
+def get_record(
+    table: str,
+    record_id: int,
+    current_user: dict = Depends(get_current_user)
+):
 
     db = SessionLocal()
 
@@ -1051,7 +1171,8 @@ def get_record(table: str, record_id: int):
 @app.get("/api/{table}")
 def list_records(
     table: str,
-    request: Request
+    request: Request,
+    current_user: dict = Depends(get_current_user)
 ):
 
     db = SessionLocal()
@@ -1257,7 +1378,11 @@ def list_records(
         db.close()
 
 @app.delete("/api/{table}/{id}")
-def delete_record(table: str, id: int):
+def delete_record(
+    table: str,
+    id: int,
+    current_user: dict = Depends(get_current_user)
+):
 
     db = SessionLocal()
 
@@ -1274,7 +1399,12 @@ def delete_record(table: str, id: int):
 
 
 @app.put("/api/{table}/{id}")
-def update_record(table: str, id: int, data: dict):
+def update_record(
+    table: str,
+    id: int,
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
 
     db = SessionLocal()
 
@@ -1670,6 +1800,7 @@ def upload_inventory_images_before_save(
     finally:
         for file in files:
             file.file.close()
+
 
 
 
