@@ -12,6 +12,11 @@ entities:
       - name: id
         type: number
 
+      - name: user_id
+        type: number
+        label: Linked User
+        readonly: true
+          
       - name: first_name
         type: text
         label: "First Name"

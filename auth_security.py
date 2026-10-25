@@ -24,22 +24,23 @@ ACCESS_TOKEN_MINUTES = 30
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def create_access_token(user: dict) -> str:
-    now = datetime.now(timezone.utc)
+def create_access_token(data: dict):
+    to_encode = data.copy()
 
-    payload = {
-        "sub": str(user["id"]),
-        "email": user["email"],
-        "role": user["role"],
-        "iat": now,
-        "exp": now + timedelta(minutes=ACCESS_TOKEN_MINUTES),
-    }
+    # JWT subject should be a string
+    user_id = to_encode.get("id")
+    if user_id is not None:
+        to_encode["sub"] = str(user_id)
+
+    expire = datetime.now(timezone.utc) + timedelta(minutes=30)
+    to_encode["exp"] = expire
 
     return jwt.encode(
-        payload,
+        to_encode,
         AUTH_SECRET_KEY,
         algorithm=ALGORITHM,
     )
+
 
 
 def get_current_user(
@@ -68,14 +69,15 @@ def get_current_user(
 
         user_id = int(user_id)
 
-    except (JWTError, ValueError, TypeError):
+    except JWTError:
+        raise unauthorized
+    except (ValueError, TypeError):
         raise unauthorized
 
     with SessionLocal() as db:
         result = db.execute(
             select(auth_users).where(auth_users.c.id == user_id)
         )
-
         user = result.mappings().first()
 
         if user is None or not user["is_active"]:
@@ -86,6 +88,8 @@ def get_current_user(
             "email": user["email"],
             "role": user["role"],
         }
+
+
 
 
 def require_admin(current_user: dict = Depends(get_current_user)):

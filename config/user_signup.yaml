@@ -9,6 +9,7 @@ pages:
       layout:
         xs: 12
         md: 8
+        offset: 2
       props:
         title: Container
       children:
@@ -64,17 +65,26 @@ pages:
         title: New typography
         layout:
           xs: 12
-          md: 6
+          md: 12
         text: Already have an account? Log In
         props:
           variant: body1
           align: left
+          color: primary
+          sx:
+            cursor: pointer
+        events:
+          onClick: goToLogin
 entities:
   customers:
     key: id
     fields:
     - name: id
       type: number
+    - name: user_id
+      type: number
+      label: Linked User
+      readonly: true  
     - name: first_name
       type: text
       label: First Name

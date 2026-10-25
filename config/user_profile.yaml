@@ -1,0 +1,277 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: User Profile
+    widgets:
+    - id: container_1792912432592
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 8
+        offset: 2
+      props:
+        title: Container
+      children:
+      - id: textfield_1792912448481
+        type: textfield
+        title: First Name
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: customers
+          field: first_name
+          label: First Name
+          required: false
+      - id: textfield_1792912452072
+        type: textfield
+        title: Last Name
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Last Name
+          formEntity: customers
+          field: last_name
+      - id: textfield_1792912462238
+        type: textfield
+        title: Email
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: customers
+          field: email
+          label: Email
+      - id: textfield_1792912483472
+        type: textfield
+        title: Age
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: customers
+          field: age
+          label: Age
+          numeric: true
+      - id: select_1792912487652
+        type: select
+        title: Gender
+        layout:
+          xs: 12
+          md: 6
+        props:
+          formEntity: customers
+          field: gender
+          source:
+            entity: customers
+            valueField: gender
+            labelField: gender
+          label: Gender
+      - id: select_1792912491414
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: City
+          formEntity: customers
+          field: city
+          source:
+            entity: customers
+            valueField: city
+            labelField: city
+      - id: button_1792912505728
+        type: button
+        title: New button
+        layout:
+          xs: 12
+          md: 6
+        text: Update info
+        props:
+          variant: contained
+        feedback:
+          success: profile update success.
+          error: Profile update failed.
+        events:
+          onClick: saveProfile
+entities:
+  customers:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: user_id
+      type: number
+      label: Linked User
+      readonly: true
+    - name: first_name
+      type: text
+      label: First Name
+      required: true
+    - name: last_name
+      type: text
+      label: Last Name
+      required: true
+    - name: email
+      type: email
+      label: Email
+      required: true
+    - name: age
+      type: number
+      label: Age
+    - name: gender
+      type: select
+      label: Gender
+      options:
+      - Male
+      - Female
+      - Other
+    - name: city
+      type: select
+      label: City
+      options:
+      - London
+      - Paris
+      - Delhi
+      - Kolkata
+      - Mumbai
+      - Bangalore
+    - name: active
+      type: boolean
+      label: Active
+  inventory:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: sku
+      type: text
+      label: SKU
+      required: true
+    - name: name
+      type: text
+      label: Product Name
+      required: true
+    - name: description
+      type: text
+      label: Description
+    - name: price
+      type: currency
+      label: Price
+      required: true
+    - name: stock_quantity
+      type: number
+      label: Stock Quantity
+    - name: active
+      type: boolean
+      label: Active
+    - name: images
+      type: json
+  orders:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: customer_id
+      type: reference
+      label: Customer
+      readonly: false
+      reference:
+        entity: customers
+        valueField: id
+        labelField: first_name
+        onDelete: cascade
+    - name: order_date
+      type: date
+      label: Order Date
+    - name: status
+      type: select
+      label: Status
+      options:
+      - draft
+      - submitted
+      - approved
+      - shipped
+      - delivered
+      - cancelled
+    - name: createdAt
+      type: datetime
+      label: Created At
+      readonly: true
+    - name: updatedAt
+      type: datetime
+      label: Updated At
+      readonly: true
+    workflow:
+      initialState: draft
+      transitions:
+      - action: submit
+        label: Submit
+        from: draft
+        to: submitted
+      - action: approve
+        label: Approve
+        from: submitted
+        to: approved
+      - action: ship
+        label: Ship
+        from: approved
+        to: shipped
+      - action: deliver
+        label: Deliver
+        from: shipped
+        to: delivered
+      - action: cancel
+        label: Cancel
+        from:
+        - draft
+        - submitted
+        - approved
+        to: cancelled
+  order_items:
+    key: id
+    fields:
+    - name: id
+      type: number
+    - name: order_id
+      type: reference
+      label: Order
+      reference:
+        entity: orders
+        valueField: id
+        labelField: id
+        onDelete: cascade
+    - name: product_id
+      type: reference
+      label: Product
+      reference:
+        entity: inventory
+        valueField: id
+        labelField: name
+        onDelete: restrict
+    - name: quantity
+      type: number
+      label: Quantity
+    - name: amount
+      type: currency
+      label: Amount
+    - name: createdAt
+      type: datetime
+      label: Created At
+      readonly: true
+    - name: updatedAt
+      type: datetime
+      label: Updated At
+      readonly: true
+relationships:
+- parent: customers
+  child: orders
+  parentKey: id
+  childKey: customer_id
+- parent: orders
+  child: order_items
+  parentKey: id
+  childKey: order_id

@@ -1,0 +1,4 @@
+from jose import jwt
+
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJzYW5Ac2FuLmNvbSIsInJvbGUiOiJ1c2VyIiwic3ViIjoiMiIsImV4cCI6MTc5MjkxMTYxNH0.W9trlvbFNS644v4ldt8oyGPDOBpbzRoRGMIdz5AVLCs"
+print(jwt.get_unverified_claims(token))

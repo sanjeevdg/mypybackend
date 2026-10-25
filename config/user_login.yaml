@@ -9,6 +9,7 @@ pages:
       layout:
         xs: 12
         md: 6
+        offset: 3
       props:
         title: User Login
       children:
@@ -64,6 +65,10 @@ entities:
     fields:
     - name: id
       type: number
+    - name: user_id
+      type: number
+      label: Linked User
+      readonly: true  
     - name: first_name
       type: text
       label: First Name

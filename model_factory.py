@@ -67,6 +67,19 @@ def build_models(config):
             field_type = field["type"]
 
             # -----------------------------
+
+            # Link each customer to an authentication user
+            if entity_name == "customers" and field_name == "user_id":
+                columns.append(
+                    Column(
+                        "user_id",
+                        Integer,
+                        nullable=True,
+                        unique=True
+                    )
+                )
+                continue
+
             # Reference field
             # -----------------------------
             if field_type == "reference":
@@ -125,6 +138,16 @@ def build_models(config):
             # -----------------------------
             else:
 
+                if entity_name == "customers" and field_name == "user_id":
+                    columns.append(
+                        Column(
+                            "user_id",
+                            Integer,
+                            nullable=True,
+                            unique=True
+                        )
+                    )
+                    continue
                 sql_type = TYPE_MAP.get(field_type)
 
                 if sql_type is None:

@@ -41,7 +41,7 @@ navigation:
       children:
         - id: my_profile
           label: My Profile
-          route: /dashboard/my_profile
+          route: /dashboard/user_profile
 
         - id: logout
           label: Logout
@@ -66,7 +66,7 @@ navigation:
     - id: profile
       label: Profile
       icon: user
-      route: /dashboard/my_profile
+      route: /dashboard/user_profile
 
     - id: logout
       label: Logout
@@ -79,6 +79,10 @@ entities:
     fields:
     - name: id
       type: number
+    - name: user_id
+      type: number
+      label: Linked User
+      readonly: true  
     - name: first_name
       type: text
       label: First Name

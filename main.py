@@ -68,17 +68,9 @@ class SaveConfigRequest(BaseModel):
     name: str
     config: dict
 
-def rebuild_schema():
 
-    metadata.clear()
 
-    config = load_yaml()
 
-    build_models(config)
-
-    metadata.drop_all(bind=engine)
-
-    metadata.create_all(bind=engine)
 
 
 app = FastAPI()
@@ -118,6 +110,7 @@ def startup():
 
     print("Loaded tables:")
     print(list(metadata.tables.keys()))
+    customers = metadata.tables["customers"]
 
 
 READERS = [
@@ -136,6 +129,9 @@ READERS = [
     OdpReader(),
     PptxReader(),
 ]
+
+
+
 
 @app.get("/api/me")
 def get_my_account(
@@ -395,6 +391,7 @@ def signup(data: SignupRequest):
 
         password_hash = pwd_context.hash(password)
 
+        
         try:
             result = db.execute(
                 insert(auth_users).values(
@@ -406,7 +403,41 @@ def signup(data: SignupRequest):
             )
 
             user_id = result.scalar_one()
+
+            # Create the linked customer profile.
+            db.execute(
+                text("""
+                    INSERT INTO customers (
+                        user_id,
+                        first_name,
+                        last_name,
+                        email,
+                        active
+                    )
+                    VALUES (
+                        :user_id,
+                        '',
+                        '',
+                        :email,
+                        TRUE
+                    )
+                """),
+                {
+                    "user_id": user_id,
+                    "email": email
+                }
+            )
+
+            # Both records are committed together.
             db.commit()
+
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="An account with this email already exists."
+            )
+
 
         except IntegrityError:
             db.rollback()
@@ -424,6 +455,124 @@ def signup(data: SignupRequest):
             "role": "user"
         }
     }
+
+
+
+
+
+
+
+
+class ProfileUpdate(BaseModel):
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    age: int | None = Field(default=None, ge=0, le=150)
+    gender: str | None = None
+    city: str | None = None
+
+
+@app.get("/api/profile")
+def get_profile(
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.get("id")
+
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+
+    with SessionLocal() as db:
+        customers = metadata.tables["customers"]
+        result = db.execute(
+            select(customers).where(
+                customers.c.user_id == user_id
+            )
+        )
+        profile = result.mappings().first()
+
+        if profile is None:
+            raise HTTPException(status_code=404, detail="Profile not found")
+
+        return dict(profile)
+
+
+@app.put("/api/profile")
+def update_profile(
+    data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user.get("id")
+
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid authentication")
+
+    email = str(data.email).strip().lower()
+    first_name = data.first_name.strip()
+    last_name = data.last_name.strip()
+
+    if not first_name or not last_name:
+        raise HTTPException(
+            status_code=422,
+            detail="First name and last name cannot be blank"
+        )
+
+    if data.gender not in (None, "Male", "Female", "Other"):
+        raise HTTPException(status_code=422, detail="Invalid gender")
+
+    if data.city not in (
+        None, "London", "Paris", "Delhi",
+        "Kolkata", "Mumbai", "Bangalore"
+    ):
+        raise HTTPException(status_code=422, detail="Invalid city")
+
+    try:
+        customers = metadata.tables["customers"]
+        with SessionLocal() as db:
+            profile = db.execute(
+                select(customers.c.id).where(
+                    customers.c.user_id == user_id
+                )
+            ).first()
+
+            if profile is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Profile not found"
+                )
+
+            # Keep the login email and profile email synchronized.
+            db.execute(
+                update(auth_users)
+                .where(auth_users.c.id == user_id)
+                .values(email=email)
+            )
+
+            db.execute(
+                update(customers)
+                .where(customers.c.user_id == user_id)
+                .values(
+                    first_name=first_name,
+                    last_name=last_name,
+                    email=email,
+                    age=data.age,
+                    gender=data.gender,
+                    city=data.city
+                )
+            )
+
+            db.commit()
+
+    except IntegrityError:
+        raise HTTPException(
+            status_code=409,
+            detail="That email address is already in use"
+        )
+
+    return {
+        "status": "ok",
+        "message": "Profile updated successfully"
+    }
+
 
 
 
@@ -595,9 +744,44 @@ def rebuild_schema():
 
     build_models(config)
 
+    # WARNING: This drops ALL YAML-generated tables and their data.
     metadata.drop_all(bind=engine)
 
     metadata.create_all(bind=engine)
+
+    # Add the FK and populate profiles after the tables exist.
+    with engine.begin() as conn:
+
+        conn.exec_driver_sql("""
+            ALTER TABLE customers
+            ADD CONSTRAINT fk_customers_auth_users
+            FOREIGN KEY (user_id)
+            REFERENCES auth_users(id)
+            ON DELETE CASCADE
+        """)
+
+        # Create a blank customer profile for every existing user.
+        conn.exec_driver_sql("""
+            INSERT INTO customers (
+                user_id,
+                first_name,
+                last_name,
+                email,
+                active
+            )
+            SELECT
+                id,
+                '',
+                '',
+                email,
+                TRUE
+            FROM auth_users
+        """)
+
+    print(
+        "Schema recreated and customer profiles "
+        "created for existing users."
+    )
 
 @app.post("/api/admin/recreate")
 def recreate():
