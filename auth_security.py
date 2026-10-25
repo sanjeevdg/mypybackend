@@ -43,6 +43,7 @@ def create_access_token(data: dict):
 
 
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ):
@@ -53,6 +54,7 @@ def get_current_user(
     )
 
     if credentials is None:
+        print("AUTH DEBUG: Missing bearer credentials")
         raise unauthorized
 
     try:
@@ -65,13 +67,16 @@ def get_current_user(
         user_id = payload.get("sub")
 
         if not user_id:
+            print("AUTH DEBUG: Missing sub claim")
             raise unauthorized
 
         user_id = int(user_id)
 
-    except JWTError:
+    except JWTError as exc:
+        print("AUTH DEBUG: JWT validation failed:", type(exc).__name__)
         raise unauthorized
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as exc:
+        print("AUTH DEBUG: Invalid user ID:", type(exc).__name__)
         raise unauthorized
 
     with SessionLocal() as db:
@@ -80,7 +85,12 @@ def get_current_user(
         )
         user = result.mappings().first()
 
-        if user is None or not user["is_active"]:
+        if user is None:
+            print("AUTH DEBUG: User ID not found:", user_id)
+            raise unauthorized
+
+        if not user["is_active"]:
+            print("AUTH DEBUG: User is inactive:", user_id)
             raise unauthorized
 
         return {
@@ -88,6 +98,7 @@ def get_current_user(
             "email": user["email"],
             "role": user["role"],
         }
+
 
 
 
