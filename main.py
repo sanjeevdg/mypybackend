@@ -57,7 +57,7 @@ from auth_security import (
     require_admin
 )
 
-
+from config_loader import load_yaml, load_shared_yaml, deep_merge
 
 load_dotenv()
 
@@ -101,11 +101,20 @@ def parse_file(filename: str, contents: bytes):
 '''
 
 def load_schema():
-
     global app_config
+
     metadata.clear()
-    app_config = load_yaml()
-    #config = load_yaml()
+
+    # Load the shared entities and relationships.
+    shared_config = load_shared_yaml()
+
+    # Retain the existing customer master-detail page configuration.
+    page_config = load_yaml()
+
+    # Combine them, preserving page-specific settings.
+    app_config = deep_merge(shared_config, page_config)
+
+    # Build database models using the combined configuration.
     build_models(app_config)
 
 
@@ -148,21 +157,12 @@ def get_my_account(
         "user": current_user
     }
 
+
+
 @app.get("/api/config")
 def get_config(name: str = "app"):
 
     config_file = CONFIG_DIR / f"{name}.yaml"
-
-
-    print("========== CONFIG DEBUG ==========")
-    print("Current working directory:", Path.cwd())
-    print("CONFIG_DIR:", CONFIG_DIR)
-    print("CONFIG_DIR absolute:", CONFIG_DIR.resolve())
-    print("Requested name:", name)
-    print("Config file:", config_file)
-    print("Config file absolute:", config_file.resolve())
-    print("Config file exists:", config_file.exists())
-    print("Files in config directory:")
 
     if not config_file.exists():
         raise HTTPException(
@@ -170,23 +170,14 @@ def get_config(name: str = "app"):
             detail=f"Configuration '{name}.yaml' not found"
         )
 
-    
     try:
-        with open(config_file, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f) or {}
+        with config_file.open("r", encoding="utf-8") as f:
+            page_config = yaml.safe_load(f) or {}
 
-        # Load shared entity definitions
-        base_config = load_yaml()
+        shared_config = load_shared_yaml()
 
-        # Add entities when the requested YAML does not define them
-        if "entities" not in config:
-            config["entities"] = base_config.get("entities", {})
-
-        # Add shared relationships when they are missing
-        if "relationships" not in config:
-            config["relationships"] = base_config.get(
-                "relationships", []
-            )
+        # Shared settings are defaults; page settings take precedence.
+        config = deep_merge(shared_config, page_config)
 
         return config
 
@@ -195,6 +186,8 @@ def get_config(name: str = "app"):
             status_code=500,
             detail=f"Invalid YAML: {str(e)}"
         )
+
+
 
 
 
