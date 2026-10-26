@@ -1,0 +1,57 @@
+
+app:
+  title: My Orders
+
+pages:
+  dashboard:
+    type: dashboard
+    title: My Orders
+    widgets:
+      - id: customer_orders
+        type: myOrders
+        title: My Orders
+
+navigation:
+  enabled: true
+
+  brand:
+    title: My Application
+
+  topMenu:
+    - id: profile
+      label: Profile
+      icon: user
+      children:
+        - id: my_profile
+          label: My Profile
+          route: /dashboard/user_profile
+
+        - id: logout
+          label: Logout
+          action: logout
+
+  sidebar:
+    - id: dashboard
+      label: Dashboard
+      icon: dashboard
+      route: /dashboard/new_frontend
+
+    - id: products
+      label: Products
+      icon: inventory
+      route: /dashboard/inventory_crud_v1
+
+    - id: orders
+      label: Orders
+      icon: shopping-cart
+      route: /dashboard/my_orders
+
+    - id: profile
+      label: Profile
+      icon: user
+      route: /dashboard/user_profile
+
+    - id: logout
+      label: Logout
+      icon: logout
+      action: logout

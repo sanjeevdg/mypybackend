@@ -2,6 +2,12 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 import cloudinary
 import cloudinary.uploader
+
+
+import smtplib
+
+from email.message import EmailMessage
+
 from readers.text_reader import TextReader
 from readers.code_reader import CodeReader
 from readers.csv_reader import CsvReader
@@ -29,13 +35,13 @@ from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal, metadata
 
-from sqlalchemy import insert, select, delete, update, create_engine, text
+from sqlalchemy import insert, select, delete, update, create_engine, text, func
 from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
 
 from pathlib import Path
 import uuid
-
+from datetime import date
 from database import metadata, engine
 from pathlib import Path
 from typing import Any
@@ -1273,6 +1279,343 @@ def drop_table(table: str):
     finally:
         db.close()
 
+
+
+
+
+
+
+
+
+@app.get("/api/my-orders")
+def get_my_orders(
+    current_user: dict = Depends(get_current_user)
+):
+    db = SessionLocal()
+
+    try:
+        orders = get_table("orders")
+        order_items = get_table("order_items")
+        inventory = get_table("inventory")
+        customers = get_table("customers")
+
+        user_email = current_user.get("email")
+
+        if not user_email:
+            raise HTTPException(
+                status_code=401,
+                detail="Authenticated user email is unavailable."
+            )
+
+        customer = db.execute(
+            select(customers).where(
+                func.lower(customers.c.email)
+                == user_email.strip().lower()
+            )
+        ).mappings().first()
+
+        if not customer:
+            return []
+
+        customer_orders = db.execute(
+            select(orders)
+            .where(
+                orders.c.customer_id == customer["id"]
+            )
+            .order_by(
+                orders.c.order_date.desc(),
+                orders.c.id.desc()
+            )
+        ).mappings().all()
+
+        result = []
+
+        for order in customer_orders:
+            order_id = order["id"]
+
+            rows = db.execute(
+                select(
+                    order_items.c.id,
+                    order_items.c.product_id,
+                    order_items.c.quantity,
+                    order_items.c.amount,
+                    inventory.c.name.label("product_name"),
+                    inventory.c.sku.label("sku")
+                )
+                .select_from(
+                    order_items.join(
+                        inventory,
+                        order_items.c.product_id
+                        == inventory.c.id
+                    )
+                )
+                .where(
+                    order_items.c.order_id == order_id
+                )
+            ).mappings().all()
+
+            items = []
+
+            for row in rows:
+                item = dict(row)
+                items.append(item)
+
+            total = sum(
+                float(item["amount"] or 0)
+                for item in items
+            )
+
+            result.append({
+                "id": order["id"],
+                "order_date": order["order_date"],
+                "status": order["status"],
+                "total": round(total, 2),
+                "items": items
+            })
+
+        return result
+
+    except HTTPException:
+        raise
+
+    finally:
+        db.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@app.post("/api/checkout")
+def checkout_order(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    db = SessionLocal()
+
+    try:
+        orders = get_table("orders")
+        order_items = get_table("order_items")
+        inventory = get_table("inventory")
+        customers = get_table("customers")
+
+        # Identify the customer using the authenticated user.
+        user_email = current_user.get("email")
+
+        if not user_email:
+            raise HTTPException(
+                status_code=401,
+                detail="Authenticated user email is unavailable."
+            )
+
+        with db.begin():
+
+            customer = db.execute(
+                select(customers).where(
+                    func.lower(customers.c.email)
+                    == user_email.strip().lower()
+                )
+            ).mappings().first()
+
+            if not customer:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No customer record is linked to your account."
+                )
+
+            cart_items = data.get("items", [])
+
+            if not isinstance(cart_items, list) or not cart_items:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Your shopping cart is empty."
+                )
+
+            # Validate the cart and calculate all amounts
+            # using prices from the database.
+            validated_items = []
+            order_total = 0
+            email_items = []
+
+            for item in cart_items:
+                try:
+                    product_id = int(item["id"])
+                    quantity = int(item["quantity"])
+                except (KeyError, TypeError, ValueError):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Invalid product or quantity."
+                    )
+
+                if product_id <= 0 or quantity <= 0:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Product IDs and quantities must be positive."
+                    )
+
+                product = db.execute(
+                    select(inventory)
+                    .where(inventory.c.id == product_id)
+                    .with_for_update()
+                ).mappings().first()
+
+                if not product:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Product {product_id} was not found."
+                    )
+
+                if (
+                    "active" in product
+                    and not product["active"]
+                ):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Product {product_id} is unavailable."
+                    )
+
+                price = float(product["price"])
+                if price <= 0:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Product {product_id} has an invalid price."
+                    )
+
+                if (
+                    "stock_quantity" in product
+                    and product["stock_quantity"] is not None
+                    and quantity > product["stock_quantity"]
+                ):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Insufficient stock for product {product_id}."
+                    )
+
+                amount = round(price * quantity, 2)
+                order_total += amount
+
+                email_items.append({
+                    "name": product.get("name", "Product"),
+                    "quantity": quantity,
+                    "unit_price": price,
+                    "amount": amount
+                })
+
+                validated_items.append({
+                    "product_id": product_id,
+                    "quantity": quantity,
+                    "amount": amount
+                })
+
+                
+            # Create the order header.
+            order_data = {
+                "customer_id": customer["id"],
+                "order_date": date.today(),
+                "status": "Pending"
+            }
+
+            created_order = db.execute(
+                insert(orders)
+                .values(**order_data)
+                .returning(orders)
+            ).mappings().one()
+
+            # Create every order item in the same transaction.
+            saved_items = []
+
+            for item in validated_items:
+                saved_item = db.execute(
+                    insert(order_items)
+                    .values(
+                        order_id=created_order["id"],
+                        **item
+                    )
+                    .returning(order_items)
+                ).mappings().one()
+
+                saved_items.append(dict(saved_item))
+
+            result = {
+                "order": dict(created_order),
+                "items": saved_items,
+                "total": round(order_total, 2),
+                "message": "Order placed successfully."
+            }
+
+        # The database transaction has committed successfully here.
+        # An email failure must not undo the saved order.
+        
+        print("SMTP HOST:", os.getenv("SMTP_HOST"))
+        print("SMTP PORT:", os.getenv("SMTP_PORT"))
+        print("SMTP USERNAME SET:", bool(os.getenv("SMTP_USERNAME")))
+        print("SMTP PASSWORD SET:", bool(os.getenv("SMTP_PASSWORD")))
+        print("SMTP FROM:", os.getenv("SMTP_FROM"))
+
+
+
+
+
+        try:
+            send_order_confirmation_email(
+                to_email=customer["email"],
+                order=result["order"],
+                items=email_items,
+                total=result["total"]
+            )
+
+            result["email_sent"] = True
+
+        except Exception as email_error:
+            print(
+                f"Order {result['order']['id']} saved, "
+                f"but confirmation email failed: {email_error}"
+            )
+
+            result["email_sent"] = False
+
+        return result
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.post("/api/{table}")
 def create_record(
     table: str,
@@ -1987,6 +2330,77 @@ def upload_inventory_images_before_save(
 
 
 
+
+def send_order_confirmation_email(
+    to_email,
+    order,
+    items,
+    total
+):
+    required_settings = [
+        "SMTP_HOST",
+        "SMTP_USERNAME",
+        "SMTP_PASSWORD",
+        "SMTP_FROM"
+    ]
+
+    missing = [
+        key for key in required_settings
+        if not os.getenv(key)
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Missing email settings: " + ", ".join(missing)
+        )
+
+    message = EmailMessage()
+    message["Subject"] = (
+        f"Order Confirmation #{order['id']}"
+    )
+    message["From"] = os.environ["SMTP_FROM"]
+    message["To"] = to_email
+
+    lines = [
+        "Thank you for your order!",
+        "",
+        f"Order number: {order['id']}",
+        f"Order date: {order['order_date']}",
+        f"Status: {order['status']}",
+        "",
+        "Items:"
+    ]
+
+    for item in items:
+        lines.append(
+            f"- {item['name']} x {item['quantity']} "
+            f"@ {item['unit_price']:.2f} "
+            f"= {item['amount']:.2f}"
+        )
+
+    lines.extend([
+        "",
+        f"Order total: {total:.2f}",
+        "",
+        "Payment has not been collected. "
+        "This order was placed in test mode.",
+        "",
+        "We will notify you when your order status changes."
+    ])
+
+    message.set_content("\n".join(lines))
+
+    with smtplib.SMTP(
+        os.environ["SMTP_HOST"],
+        int(os.getenv("SMTP_PORT", "587")),
+        timeout=20
+    ) as server:
+        server.starttls()
+        server.login(
+            os.environ["SMTP_USERNAME"],
+            os.environ["SMTP_PASSWORD"]
+        )
+        server.send_message(message)
 
 
 

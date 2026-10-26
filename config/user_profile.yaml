@@ -136,7 +136,7 @@ navigation:
     - id: orders
       label: Orders
       icon: shopping-cart
-      route: /dashboard/orders
+      route: /dashboard/my_orders
 
     - id: profile
       label: Profile
