@@ -92,3 +92,48 @@ pages:
           entity: inventory
           aggregate: count
           field: ''
+
+navigation:
+  enabled: true
+
+  brand:
+    title: My Application
+
+  topMenu:
+    - id: profile
+      label: Profile
+      icon: user
+      children:
+        - id: my_profile
+          label: My Profile
+          route: /dashboard/user_profile
+
+        - id: logout
+          label: Logout
+          action: logout
+
+  sidebar:
+    - id: dashboard
+      label: Dashboard
+      icon: dashboard
+      route: /dashboard/dashboard_v2
+
+    - id: products
+      label: Products
+      icon: inventory
+      route: /dashboard/new_frontend
+
+    - id: orders
+      label: Orders
+      icon: shopping-cart
+      route: /dashboard/my_orders
+
+    - id: profile
+      label: Profile
+      icon: user
+      route: /dashboard/user_profile
+
+    - id: logout
+      label: Logout
+      icon: logout
+      action: logout
