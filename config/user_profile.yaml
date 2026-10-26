@@ -126,12 +126,12 @@ navigation:
     - id: dashboard
       label: Dashboard
       icon: dashboard
-      route: /dashboard/new_frontend
+      route: /dashboard/dashboard_v2
 
     - id: products
       label: Products
       icon: inventory
-      route: /dashboard/inventory_crud_v1
+      route: /dashboard/new_frontend
 
     - id: orders
       label: Orders
