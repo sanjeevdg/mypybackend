@@ -296,7 +296,7 @@ navigation:
         - id: dashboard
           label: Dashboard
           icon: dashboard
-          route: /dashboard/dashboard_v2
+          route: /dashboard/customer_home
 
         - id: products
           label: Products

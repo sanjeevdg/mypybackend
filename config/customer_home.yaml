@@ -1,0 +1,65 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Customer Home
+    widgets:
+    - id: container_1793107030230
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 6
+      props:
+        title: Container
+      children:
+      - id: chart_1793107048033
+        type: chart
+        title: Orders by Product
+        layout:
+          xs: 12
+          md: 3
+        chart:
+          type: pie
+          entity: inventory
+          x: id
+          y: name
+      - id: stat_1793107082760
+        type: stat
+        title: 'Total orders '
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: orders
+          aggregate: count
+          field: ''
+    - id: container_1793107167501
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 6
+      props:
+        title: Container
+      children:
+      - id: chart_1793107172298
+        type: chart
+        title: Orders by status
+        layout:
+          xs: 12
+          md: 6
+        chart:
+          type: pie
+          entity: orders
+          x: id
+          y: status
+      - id: stat_1793107191904
+        type: stat
+        title: Total Products
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: inventory
+          aggregate: count
+          field: ''
