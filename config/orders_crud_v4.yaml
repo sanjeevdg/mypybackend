@@ -1,0 +1,46 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Orders Data table V4
+    widgets:
+    - id: orders_master_detail
+      type: masterDetailDataGrid
+      title: Orders
+
+      source:
+        entity: orders
+        limit: 100
+        pageSize: 10
+
+        columns:
+          - field: id
+            label: Order ID
+
+          - field: customer_id
+            label: Customer
+
+          - field: status
+            label: Status
+
+          - field: order_date
+            label: Order Date
+
+        detail:
+          title: Order Items
+          entity: order_items
+          parentKey: id
+          foreignKey: order_id
+
+          columns:
+            - field: id
+              label: Item ID
+
+            - field: product_id
+              label: Product
+
+            - field: quantity
+              label: Quantity
+
+            - field: amount
+              label: Amount
+    

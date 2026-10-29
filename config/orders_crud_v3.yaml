@@ -1,0 +1,50 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Orders Datagrid V3
+    widgets:
+    - id: container_1791292263537
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: orders_master_detail_grid
+        type: masterDetailDataGrid
+        title: Orders and Order Items
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: orders
+          limit: 100
+          pageSize: 10
+          columns:
+          - field: id
+            label: Order ID
+          - field: customer_id__display
+            label: Customer
+          - field: order_date
+            label: Order Date
+          - field: status
+            label: Status
+          - field: createdAt
+            label: Created At
+          - field: updatedAt
+            label: Updated At
+          detail:
+            entity: order_items
+            title: Order Items
+            parentKey: id
+            foreignKey: order_id
+            columns:
+            - field: product_id__display
+              label: Product
+            - field: quantity
+              label: Quantity
+            - field: amount
+              label: Amount
+    
