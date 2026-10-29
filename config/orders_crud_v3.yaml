@@ -13,7 +13,7 @@ pages:
         title: Container
       children:
       - id: orders_master_detail_grid
-        type: masterDetailDataGrid
+        type: masterDetailDataGrid2
         title: Orders and Order Items
         layout:
           xs: 12
