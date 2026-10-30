@@ -1,10 +1,10 @@
 pages:
   dashboard:
     type: dashboard
-    title: Orders Data table V4
+    title: Orders Data Grid V4
     widgets:
     - id: orders_master_detail
-      type: masterDetailDataGrid
+      type: datagrid
       title: Orders
 
       source:
@@ -16,7 +16,7 @@ pages:
           - field: id
             label: Order ID
 
-          - field: customer_id
+          - field: customer_id__display
             label: Customer
 
           - field: status
@@ -25,11 +25,12 @@ pages:
           - field: order_date
             label: Order Date
 
+      
         detail:
-          title: Order Items
           entity: order_items
-          parentKey: id
           foreignKey: order_id
+          parentKey: id
+          title: Order Items
 
           columns:
             - field: id
@@ -43,4 +44,101 @@ pages:
 
             - field: amount
               label: Amount
-    
+
+        
+    - id: container_1790950935727
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: select_1790950969188
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          source:
+            entity: customers
+            valueField: id
+            labelField: first_name
+          field: customer_id
+          label: Select Customer
+          formEntity: orders
+          required: true
+      - id: select_1790951008667
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Status
+          options:
+          - value: Draft
+            label: Draft
+          - value: Submitted
+            label: Submitted
+          - value: Approved
+            label: Approved
+          - value: Delivered
+            label: Delivered
+          formEntity: orders
+          field: status
+          required: true
+      - id: datePicker_1791357307128
+        type: datePicker
+        title: Date
+        layout:
+          xs: 12
+          md: 6
+        props:
+          field: order_date
+          label: Order Date
+          formEntity: orders
+          defaultValue: ''
+          required: true
+          readOnly: false
+          entity: orders
+    - id: container_1790951213242
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: button_1790951279332
+        type: button
+        title: New button
+        layout:
+          xs: 12
+          md: 6
+        text: Save
+        props:
+          variant: contained
+        events:
+          onClick: saveOrder
+        feedback:
+          success: Order save success
+          error: order save failed
+      - id: detailgrid_test
+        type: detailGrid
+        title: Order Items
+        props:
+          detailField: orderItems
+          source:
+            entity: order_items
+          columns:
+          - field: product_id
+            label: Product
+          - field: quantity
+            label: Quantity
+          
+          - field: amount
+            label: Amount    

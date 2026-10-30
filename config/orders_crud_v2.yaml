@@ -33,6 +33,30 @@ pages:
             label: Created At
           - field: updatedAt
             label: Updated At
+
+        detail:
+          entity: order_items
+          foreignKey: order_id
+          parentKey: id
+          title: Order Items
+
+          columns:
+            - field: id
+              label: Item ID
+
+            - field: product_id
+              label: Product
+
+            - field: quantity
+              label: Quantity
+
+            - field: unit_price
+              label: Unit Price  
+
+
+
+
+
       - id: order_items_grid
         type: datagrid
         title: Order Items

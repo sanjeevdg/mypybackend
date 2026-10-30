@@ -262,7 +262,7 @@ navigation:
 
         - id: orders
           label: Orders
-          route: /dashboard/orders_crud_v2
+          route: /dashboard/orders_crud_v4
           icon: shopping-cart
 
         - id: designer
