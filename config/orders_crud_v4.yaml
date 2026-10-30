@@ -36,7 +36,7 @@ pages:
             - field: id
               label: Item ID
 
-            - field: product_id
+            - field: product_id__display
               label: Product
 
             - field: quantity
