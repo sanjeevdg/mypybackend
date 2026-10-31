@@ -646,7 +646,7 @@ def login(data: dict):
             "message": "Login successful",
             "access_token": token,
             "token_type": "bearer",
-            "expires_in": 1800,
+            "expires_in": 14400,
             "user": {
                 "id": user["id"],
                 "email": user["email"],
