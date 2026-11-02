@@ -138,6 +138,178 @@ entities:
         readonly: true
 
 
+
+
+  order_items:
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+
+      - name: order_id
+        type: reference
+        label: "Order"
+        reference:
+          entity: orders
+          valueField: id
+          labelField: id
+          onDelete: cascade
+
+      - name: product_id
+        type: reference
+        label: "Product"
+        reference:
+          entity: inventory
+          valueField: id
+          labelField: name
+          onDelete: restrict
+
+      - name: quantity
+        type: number
+        label: "Quantity"
+
+      - name: amount
+        type: currency
+        label: "Original Amount"
+
+      - name: discount_type
+        type: text
+        label: "Discount Type"
+
+      - name: discount_value
+        type: currency
+        label: "Discount Value"
+
+      - name: discount_amount
+        type: currency
+        label: "Discount Amount"
+
+      - name: final_amount
+        type: currency
+        label: "Final Amount"
+
+      - name: discount_batch_id
+        type: number
+        label: "Discount Batch"
+
+      - name: createdAt
+        type: datetime
+        label: "Created At"
+        readonly: true
+
+      - name: updatedAt
+        type: datetime
+        label: "Updated At"
+        readonly: true
+
+
+  discount_batches:
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+
+      - name: discount_type
+        type: text
+
+      - name: discount_value
+        type: currency
+
+      - name: product_ids
+        type: json
+
+      - name: discount_note
+        type: text
+
+      - name: applied_at
+        type: datetime
+
+      - name: applied_by
+        type: number
+
+
+
+  discount_batch_items:
+    key: id
+
+    fields:
+
+      - name: id
+        type: number
+
+      - name: discount_batch_id
+        type: reference
+        label: "Discount Batch"
+        reference:
+          entity: discount_batches
+          valueField: id
+          labelField: id
+          onDelete: cascade
+
+      - name: order_item_id
+        type: reference
+        label: "Order Item"
+        reference:
+          entity: order_items
+          valueField: id
+          labelField: id
+          onDelete: restrict
+
+      - name: order_id
+        type: reference
+        label: "Order"
+        reference:
+          entity: orders
+          valueField: id
+          labelField: id
+          onDelete: restrict
+
+      - name: product_id
+        type: reference
+        label: "Product"
+        reference:
+          entity: inventory
+          valueField: id
+          labelField: name
+          onDelete: restrict
+
+      - name: quantity
+        type: number
+        label: "Quantity"
+
+      - name: original_amount
+        type: currency
+        label: "Original Amount"
+
+      - name: discount_type
+        type: text
+        label: "Discount Type"
+
+      - name: discount_value
+        type: currency
+        label: "Discount Value"
+
+      - name: discount_amount
+        type: currency
+        label: "Discount Amount"
+
+      - name: final_amount
+        type: currency
+        label: "Final Amount"
+
+      - name: createdAt
+        type: datetime
+        label: "Created At"
+        readonly: true
+
+
+
+
+
     workflow:
 
       initialState: draft
@@ -173,49 +345,7 @@ entities:
           to: cancelled
 
 
-  order_items:
-    key: id
-
-    fields:
-
-      - name: id
-        type: number
-
-      - name: order_id
-        type: reference
-        label: "Order"
-        reference:
-          entity: orders
-          valueField: id
-          labelField: id
-          onDelete: cascade
-
-      - name: product_id
-        type: reference
-        label: "Product"
-        reference:
-          entity: inventory
-          valueField: id
-          labelField: name
-          onDelete: restrict
-
-      - name: quantity
-        type: number
-        label: "Quantity"
-
-      - name: amount
-        type: currency
-        label: "Amount"
-
-      - name: createdAt
-        type: datetime
-        label: "Created At"
-        readonly: true
-
-      - name: updatedAt
-        type: datetime
-        label: "Updated At"
-        readonly: true
+  
 
 
 relationships:
@@ -229,8 +359,6 @@ relationships:
     child: order_items
     parentKey: id
     childKey: order_id
-
-
 
 
 
@@ -265,6 +393,17 @@ navigation:
           route: /dashboard/orders_crud_v4
           icon: shopping-cart
 
+        - label: Apply Global Discount
+          route: /apply-discount
+          icon: LocalOffer  
+
+        
+        - id: discount_history
+          label: Discount History
+          route: /dashboard/discount_history
+          icon: History  
+
+          
         - id: designer
           label: Designer
           route: /designer

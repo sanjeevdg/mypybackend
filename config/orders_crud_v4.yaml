@@ -43,7 +43,19 @@ pages:
               label: Quantity
 
             - field: amount
-              label: Amount
+              label: Original Amount
+
+            - field: discount_type
+              label: Discount Type
+
+            - field: discount_value
+              label: Discount Value
+
+            - field: discount_amount
+              label: Discount Amount
+
+            - field: final_amount
+              label: Final Amount
 
         
     - id: container_1790950935727
@@ -135,10 +147,13 @@ pages:
           source:
             entity: order_items
           columns:
-          - field: product_id
-            label: Product
-          - field: quantity
-            label: Quantity
-          
-          - field: amount
-            label: Amount    
+            - field: product_id
+              label: Product
+
+            - field: quantity
+              label: Quantity
+
+            - field: amount
+              label: Original Amount
+
+            

@@ -1,0 +1,56 @@
+
+pages:
+  dashboard:
+    type: dashboard
+    title: Discount History
+
+    widgets:
+      - id: discount_history_grid
+        type: datagrid
+        title: Discount History
+
+        source:
+          endpoint: /api/orders/discount-history
+          responseField: history
+
+          limit: 100
+          pageSize: 10
+
+          columns:
+            - field: id
+              label: Batch ID
+
+            - field: applied_at
+              label: Applied Date
+
+            - field: discount_type
+              label: Discount Type
+
+            - field: discount_value
+              label: Discount Value
+
+            - field: affected_orders
+              label: Affected Orders
+
+            - field: affected_items
+              label: Affected Items
+
+            - field: total_discount
+              label: Total Discount
+
+            - field: discount_note
+              label: Discount Note
+
+          detail:
+            dataField: orders
+            title: Affected Orders
+
+            columns:
+              - field: order_id
+                label: Order ID
+
+              - field: affected_items
+                label: Items Discounted
+
+              - field: total_discount
+                label: Total Discount

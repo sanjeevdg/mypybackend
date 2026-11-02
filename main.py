@@ -59,6 +59,10 @@ from auth_security import (
 
 from config_loader import load_yaml, load_shared_yaml, deep_merge
 
+
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+
+
 load_dotenv()
 
 #DATABASE_URL = os.getenv("DATABASE_URL")
@@ -819,6 +823,176 @@ def migrate_orders_amount():
             detail=str(e)
         )
 
+
+
+@app.get("/api/orders/discount-history")
+def get_discount_history(
+    current_user: dict = Depends(get_current_user)
+):
+
+    db = SessionLocal()
+
+    try:
+
+        discount_batches = metadata.tables["discount_batches"]
+        discount_batch_items = metadata.tables["discount_batch_items"]
+
+        # --------------------------------------------
+        # 1. Retrieve all discount batches
+        # --------------------------------------------
+
+        batch_query = (
+            select(
+                discount_batches.c.id,
+                discount_batches.c.discount_type,
+                discount_batches.c.discount_value,
+                discount_batches.c.product_ids,
+                discount_batches.c.discount_note,
+                discount_batches.c.applied_at,
+                discount_batches.c.applied_by
+            )
+            .order_by(
+                discount_batches.c.applied_at.desc(),
+                discount_batches.c.id.desc()
+            )
+        )
+
+        batches = db.execute(
+            batch_query
+        ).mappings().all()
+
+        # --------------------------------------------
+        # 2. Retrieve affected orders per batch
+        # --------------------------------------------
+
+        detail_query = (
+            select(
+                discount_batch_items.c.discount_batch_id,
+                discount_batch_items.c.order_id,
+                func.count(
+                    discount_batch_items.c.id
+                ).label("affected_items"),
+                func.sum(
+                    discount_batch_items.c.discount_amount
+                ).label("total_discount")
+            )
+            .group_by(
+                discount_batch_items.c.discount_batch_id,
+                discount_batch_items.c.order_id
+            )
+            .order_by(
+                discount_batch_items.c.discount_batch_id,
+                discount_batch_items.c.order_id
+            )
+        )
+
+        details = db.execute(
+            detail_query
+        ).mappings().all()
+
+        # --------------------------------------------
+        # 3. Group order details by discount batch
+        # --------------------------------------------
+
+        batch_details = {}
+
+        for detail in details:
+
+            batch_id = detail["discount_batch_id"]
+
+            if batch_id not in batch_details:
+                batch_details[batch_id] = []
+
+            batch_details[batch_id].append({
+
+                "order_id": detail["order_id"],
+
+                "affected_items": detail["affected_items"],
+
+                "total_discount": str(
+                    detail["total_discount"] or Decimal("0.00")
+                )
+
+            })
+
+        # --------------------------------------------
+        # 4. Build final response
+        # --------------------------------------------
+
+        history = []
+
+        for batch in batches:
+
+            batch_id = batch["id"]
+
+            order_details = batch_details.get(
+                batch_id,
+                []
+            )
+
+            total_discount = sum(
+                (
+                    Decimal(order["total_discount"])
+                    for order in order_details
+                ),
+                Decimal("0.00")
+            )
+
+            history.append({
+
+                "id": batch_id,
+
+                "discount_type": batch["discount_type"],
+
+                "discount_value": str(
+                    batch["discount_value"]
+                ),
+
+                "product_ids": batch["product_ids"],
+
+                "discount_note": batch["discount_note"],
+
+                "applied_at": (
+                    batch["applied_at"].isoformat()
+                    if batch["applied_at"]
+                    else None
+                ),
+
+                "applied_by": batch["applied_by"],
+
+                "affected_orders": len(order_details),
+
+                "affected_items": sum(
+                    order["affected_items"]
+                    for order in order_details
+                ),
+
+                "total_discount": str(total_discount),
+
+                "orders": order_details
+
+            })
+
+        # --------------------------------------------
+        # 5. Return history
+        # --------------------------------------------
+
+        return {
+            "status": "success",
+            "total_batches": len(history),
+            "history": history
+        }
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        db.close()
 
 @app.get("/api/chart")
 def get_chart_data(
@@ -2394,6 +2568,582 @@ def send_order_confirmation_email(
             os.environ["SMTP_PASSWORD"]
         )
         server.send_message(message)
+
+
+
+
+
+@app.post("/api/orders/apply-global-discount")
+def apply_global_discount(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+
+    db = SessionLocal()
+
+    try:
+
+        # --------------------------------------------
+        # 1. Validate request
+        # --------------------------------------------
+
+        product_ids = data.get("product_ids")
+        discount_type = data.get("discount_type")
+        discount_value = data.get("discount_value")
+        discount_note = data.get("discount_note", "")
+
+        if not isinstance(product_ids, list) or not product_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="Please select at least one product."
+            )
+
+        try:
+            product_ids = list(set(
+                int(pid) for pid in product_ids
+            ))
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid product IDs."
+            )
+
+        if any(pid <= 0 for pid in product_ids):
+            raise HTTPException(
+                status_code=400,
+                detail="Product IDs must be positive."
+            )
+
+        if discount_type not in ("percentage", "fixed"):
+            raise HTTPException(
+                status_code=400,
+                detail="Discount type must be percentage or fixed."
+            )
+
+        try:
+            discount_value = Decimal(str(discount_value))
+        except (InvalidOperation, TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid discount value."
+            )
+
+        if not discount_value.is_finite() or discount_value <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Discount value must be greater than zero."
+            )
+
+        if discount_type == "percentage" and discount_value > 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Percentage discount cannot exceed 100%."
+            )
+
+        # --------------------------------------------
+        # 2. Get dynamic tables
+        # --------------------------------------------
+
+        orders = metadata.tables["orders"]
+        order_items = metadata.tables["order_items"]
+        discount_batches = metadata.tables["discount_batches"]
+        discount_batch_items = metadata.tables["discount_batch_items"]
+
+        # --------------------------------------------
+        # 3. Find matching order items
+        #
+        # Only submitted and approved orders
+        # --------------------------------------------
+
+        query = (
+            select(
+                order_items.c.id,
+                order_items.c.order_id,
+                order_items.c.product_id,
+                order_items.c.quantity,
+                order_items.c.amount
+            )
+            .select_from(
+                order_items.join(
+                    orders,
+                    order_items.c.order_id == orders.c.id
+                )
+            )
+            .where(
+                orders.c.status.in_([
+                    "submitted",
+                    "approved"
+                ]),
+                order_items.c.product_id.in_(product_ids),
+                order_items.c.discount_batch_id.is_(None)
+            )
+        )
+
+        matching_items = db.execute(
+            query
+        ).mappings().all()
+
+        if not matching_items:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    "No matching products found "
+                    "in submitted or approved orders."
+                )
+            )
+
+        # --------------------------------------------
+        # 4. Create discount batch
+        # --------------------------------------------
+
+        applied_by = (
+            current_user.get("id")
+            or current_user.get("user_id")
+        )
+
+        batch_result = db.execute(
+            insert(discount_batches)
+            .values(
+                discount_type=discount_type,
+                discount_value=discount_value,
+                product_ids=product_ids,
+                discount_note=discount_note,
+                applied_by=applied_by
+            )
+            .returning(discount_batches.c.id)
+        )
+
+        batch_id = batch_result.scalar_one()
+
+        # --------------------------------------------
+        # 5. Apply discount to every matching item
+        # --------------------------------------------
+
+        updated_count = 0
+        total_discount = Decimal("0.00")
+        affected_orders = set()
+
+        for item in matching_items:
+
+            original_amount = Decimal(
+                str(item["amount"])
+            )
+
+            if not original_amount.is_finite() or original_amount < 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid amount for order item {item['id']}."
+                )
+
+            # Percentage discount
+            if discount_type == "percentage":
+
+                actual_discount = (
+                    original_amount * discount_value
+                    / Decimal("100")
+                )
+
+            # Fixed discount per order-item line
+            else:
+
+                actual_discount = min(
+                    discount_value,
+                    original_amount
+                )
+
+            actual_discount = actual_discount.quantize(
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP
+            )
+
+            final_amount = (
+                original_amount - actual_discount
+            ).quantize(
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP
+            )
+
+            # Update individual order item
+            db.execute(
+                update(order_items)
+                .where(
+                    order_items.c.id == item["id"]
+                )
+                .values(
+                    discount_type=discount_type,
+                    discount_value=discount_value,
+                    discount_amount=actual_discount,
+                    final_amount=final_amount,
+                    discount_batch_id=batch_id
+                )
+            )
+
+            # --------------------------------------------
+            # Save permanent discount history snapshot
+            # --------------------------------------------
+
+            db.execute(
+                insert(discount_batch_items)
+                .values(
+                    discount_batch_id=batch_id,
+                    order_item_id=item["id"],
+                    order_id=item["order_id"],
+                    product_id=item["product_id"],
+                    quantity=item["quantity"],
+                    original_amount=original_amount,
+                    discount_type=discount_type,
+                    discount_value=discount_value,
+                    discount_amount=actual_discount,
+                    final_amount=final_amount
+                )
+            )
+
+
+
+            updated_count += 1
+            total_discount += actual_discount
+            affected_orders.add(item["order_id"])
+
+        # --------------------------------------------
+        # 6. Commit everything together
+        # --------------------------------------------
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "message": "Global discount applied successfully.",
+            "discount_batch_id": batch_id,
+            "discount_type": discount_type,
+            "discount_value": str(discount_value),
+            "updated_items": updated_count,
+            "affected_orders": len(affected_orders),
+            "total_discount": str(total_discount)
+        }
+
+    except HTTPException:
+
+        db.rollback()
+        raise
+
+    except Exception as e:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        db.close()
+
+
+
+
+
+
+
+
+
+
+
+@app.post("/api/orders/preview-global-discount")
+def preview_global_discount(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+
+    db = SessionLocal()
+
+    try:
+
+        # --------------------------------------------
+        # 1. Validate request
+        # --------------------------------------------
+
+        product_ids = data.get("product_ids")
+        discount_type = data.get("discount_type")
+        discount_value = data.get("discount_value")
+
+        if not isinstance(product_ids, list) or not product_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="Please select at least one product."
+            )
+
+        try:
+            product_ids = list(set(int(pid) for pid in product_ids))
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid product IDs."
+            )
+
+        if any(pid <= 0 for pid in product_ids):
+            raise HTTPException(
+                status_code=400,
+                detail="Product IDs must be positive."
+            )
+
+        if discount_type not in ("percentage", "fixed"):
+            raise HTTPException(
+                status_code=400,
+                detail="Discount type must be percentage or fixed."
+            )
+
+        try:
+            discount_value = Decimal(str(discount_value))
+        except (InvalidOperation, TypeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid discount value."
+            )
+
+        if not discount_value.is_finite() or discount_value <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Discount value must be greater than zero."
+            )
+
+        if discount_type == "percentage" and discount_value > 100:
+            raise HTTPException(
+                status_code=400,
+                detail="Percentage discount cannot exceed 100%."
+            )
+
+        # --------------------------------------------
+        # 2. Get dynamic tables
+        # --------------------------------------------
+
+        orders = metadata.tables["orders"]
+        order_items = metadata.tables["order_items"]
+        inventory = metadata.tables["inventory"]
+
+        # --------------------------------------------
+        # 3. Get selected product names
+        # --------------------------------------------
+
+        product_rows = db.execute(
+            select(
+                inventory.c.id,
+                inventory.c.name
+            ).where(
+                inventory.c.id.in_(product_ids)
+            )
+        ).mappings().all()
+
+        product_summary = {}
+
+        for product in product_rows:
+
+            product_summary[product["id"]] = {
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "matching_items": 0,
+                "affected_orders": set(),
+                "original_amount": Decimal("0.00"),
+                "discount_amount": Decimal("0.00"),
+                "final_amount": Decimal("0.00")
+            }
+
+        # --------------------------------------------
+        # 4. Find eligible order items
+        # --------------------------------------------
+
+        query = (
+            select(
+                order_items.c.id,
+                order_items.c.order_id,
+                order_items.c.product_id,
+                order_items.c.amount
+            )
+            .select_from(
+                order_items.join(
+                    orders,
+                    order_items.c.order_id == orders.c.id
+                )
+            )
+            .where(
+                orders.c.status.in_([
+                    "submitted",
+                    "approved"
+                ]),
+                order_items.c.product_id.in_(product_ids),
+                order_items.c.discount_batch_id.is_(None)
+            )
+        )
+
+        matching_items = db.execute(
+            query
+        ).mappings().all()
+
+        # --------------------------------------------
+        # 5. Calculate preview amounts
+        # --------------------------------------------
+
+        total_original = Decimal("0.00")
+        total_discount = Decimal("0.00")
+        total_final = Decimal("0.00")
+
+        affected_orders = set()
+
+        for item in matching_items:
+
+            original_amount = Decimal(
+                str(item["amount"])
+            )
+
+            if not original_amount.is_finite() or original_amount < 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid amount for order item {item['id']}."
+                )
+
+            if discount_type == "percentage":
+
+                actual_discount = (
+                    original_amount * discount_value
+                    / Decimal("100")
+                )
+
+            else:
+
+                actual_discount = min(
+                    discount_value,
+                    original_amount
+                )
+
+            actual_discount = actual_discount.quantize(
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP
+            )
+
+            final_amount = (
+                original_amount - actual_discount
+            ).quantize(
+                Decimal("0.01"),
+                rounding=ROUND_HALF_UP
+            )
+
+            product_id = item["product_id"]
+
+            if product_id not in product_summary:
+                continue
+
+            summary = product_summary[product_id]
+
+            summary["matching_items"] += 1
+            summary["affected_orders"].add(item["order_id"])
+
+            summary["original_amount"] += original_amount
+            summary["discount_amount"] += actual_discount
+            summary["final_amount"] += final_amount
+
+            total_original += original_amount
+            total_discount += actual_discount
+            total_final += final_amount
+
+            affected_orders.add(item["order_id"])
+
+        # --------------------------------------------
+        # 6. Format product breakdown
+        # --------------------------------------------
+
+        products = []
+
+        for summary in product_summary.values():
+
+            products.append({
+                "product_id": summary["product_id"],
+                "product_name": summary["product_name"],
+                "matching_items": summary["matching_items"],
+                "affected_orders": len(summary["affected_orders"]),
+                "original_amount": str(
+                    summary["original_amount"].quantize(
+                        Decimal("0.01")
+                    )
+                ),
+                "discount_amount": str(
+                    summary["discount_amount"].quantize(
+                        Decimal("0.01")
+                    )
+                ),
+                "final_amount": str(
+                    summary["final_amount"].quantize(
+                        Decimal("0.01")
+                    )
+                )
+            })
+
+        # --------------------------------------------
+        # 7. Return preview (no database changes)
+        # --------------------------------------------
+
+        return {
+            "status": "success",
+            "discount_type": discount_type,
+            "discount_value": str(discount_value),
+
+            "selected_products": len(product_ids),
+            "matching_items": len(matching_items),
+            "affected_orders": len(affected_orders),
+
+            "total_original_amount": str(
+                total_original.quantize(Decimal("0.01"))
+            ),
+
+            "total_discount": str(
+                total_discount.quantize(Decimal("0.01"))
+            ),
+
+            "total_final_amount": str(
+                total_final.quantize(Decimal("0.01"))
+            ),
+
+            "products": products
+        }
+
+    except HTTPException:
+
+        db.rollback()
+        raise
+
+    except Exception as e:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+
+        db.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
