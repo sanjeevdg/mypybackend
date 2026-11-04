@@ -1808,6 +1808,12 @@ def get_my_orders(
                     order_items.c.product_id,
                     order_items.c.quantity,
                     order_items.c.amount,
+
+                    order_items.c.discount_type,
+                    order_items.c.discount_value,
+                    order_items.c.discount_amount,
+                    order_items.c.final_amount,
+
                     inventory.c.name.label("product_name"),
                     inventory.c.sku.label("sku")
                 )
@@ -1830,7 +1836,11 @@ def get_my_orders(
                 items.append(item)
 
             total = sum(
-                float(item["amount"] or 0)
+                float(
+                    item["final_amount"]
+                    if item["final_amount"] is not None
+                    else item["amount"] or 0
+                )
                 for item in items
             )
 
