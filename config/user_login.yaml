@@ -35,6 +35,18 @@ pages:
           field: password
           type: password
           required: true
+      - id: button_forgot_password
+        type: button
+        title: Forgot Password
+        layout:
+          xs: 12
+          md: 6
+        text: Forgot Password?
+        props:
+          variant: text
+        events:
+          onClick: forgotPassword
+              
       - id: checkbox_1792768613816
         type: checkbox
         title: Remember Me

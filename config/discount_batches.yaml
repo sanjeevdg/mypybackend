@@ -1,0 +1,37 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Discount Batches
+    widgets:
+    - id: container_1793679265813
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: datagrid_1793679287552
+        type: datagrid
+        title: Discount batch list
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: discount_batches
+          columns:
+          - field: id
+            label: id
+          - field: discount_type
+            label: discount_type
+          - field: discount_value
+            label: discount_value
+          - field: product_ids
+            label: product_ids
+          - field: discount_note
+            label: discount_note
+          - field: applied_at
+            label: applied_at
+          - field: applied_by__display
+            label: applied_by

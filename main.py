@@ -5,6 +5,8 @@ import cloudinary.uploader
 
 
 import smtplib
+import secrets
+import hashlib
 
 from email.message import EmailMessage
 
@@ -26,7 +28,7 @@ from readers.ods_reader import OdsReader
 from readers.odp_reader import OdpReader
 from readers.pptx_reader import PptxReader
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 from pydantic import BaseModel, EmailStr, Field
 import yaml
@@ -41,7 +43,7 @@ from passlib.context import CryptContext
 
 from pathlib import Path
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from database import metadata, engine
 from pathlib import Path
 from typing import Any
@@ -50,7 +52,7 @@ CONFIG_DIR = Path("config")
 
 from dotenv import load_dotenv
 import os
-from auth import auth_users, create_auth_table
+from auth import auth_users, create_auth_table, password_reset_tokens
 from auth_security import (
     create_access_token,
     get_current_user,
@@ -126,7 +128,7 @@ def load_schema():
 def startup():
 
     load_schema()    
-
+    create_auth_table()
     print("Loaded tables:")
     print(list(metadata.tables.keys()))
     customers = metadata.tables["customers"]
@@ -660,6 +662,306 @@ def login(data: dict):
 
     finally:
         db.close()
+
+
+
+
+
+
+
+@app.post("/api/forgot-password")
+def forgot_password(data: dict):
+
+    email = data.get("email", "")
+
+    if not isinstance(email, str):
+        email = ""
+
+    email = email.strip().lower()
+
+    generic_message = (
+        "If an account exists for this email, "
+        "a password reset link will be sent."
+    )
+
+    if not email or len(email) > 320:
+        return {
+            "success": True,
+            "message": generic_message
+        }
+
+    db = SessionLocal()
+
+    try:
+
+        # Find the account.
+        user = db.execute(
+            select(auth_users).where(
+                auth_users.c.email == email,
+                auth_users.c.is_active == True
+            )
+        ).mappings().first()
+
+        # Do not reveal whether the account exists.
+        if user is None:
+            return {
+                "success": True,
+                "message": generic_message
+            }
+
+        # Generate a cryptographically secure token.
+        reset_token = secrets.token_urlsafe(32)
+
+        # Store only its SHA-256 hash.
+        token_hash = hashlib.sha256(
+            reset_token.encode("utf-8")
+        ).hexdigest()
+
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            minutes=30
+        )
+
+        # Invalidate previous unused reset tokens.
+        db.execute(
+            update(password_reset_tokens)
+            .where(
+                password_reset_tokens.c.user_id == user["id"],
+                password_reset_tokens.c.used_at.is_(None)
+            )
+            .values(
+                used_at=datetime.now(timezone.utc)
+            )
+        )
+
+        # Insert the new reset token.
+        db.execute(
+            insert(password_reset_tokens).values(
+                user_id=user["id"],
+                token_hash=token_hash,
+                expires_at=expires_at
+            )
+        )
+
+        db.commit()
+
+        # Construct the frontend reset URL.
+        frontend_url = os.getenv("FRONTEND_URL")
+
+        if not frontend_url:
+            raise RuntimeError("FRONTEND_URL is not configured")
+
+        reset_link = (
+            frontend_url.rstrip("/")
+            + "/#/dashboard/reset_password?token="
+            + quote(reset_token, safe="")
+        )
+
+        try:
+
+            send_password_reset_email(
+                to_email=email,
+                reset_link=reset_link
+            )
+
+        except Exception as email_error:
+
+            print(
+                "PASSWORD RESET EMAIL ERROR:",
+                email_error
+            )
+
+            # Invalidate the token if email delivery fails.
+            db.execute(
+                update(password_reset_tokens)
+                .where(
+                    password_reset_tokens.c.token_hash == token_hash
+                )
+                .values(
+                    used_at=datetime.now(timezone.utc)
+                )
+            )
+
+            db.commit()
+
+        return {
+            "success": True,
+            "message": generic_message
+        }
+
+    except Exception as e:
+
+        db.rollback()
+
+        print("FORGOT PASSWORD ERROR:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process password reset request."
+        )
+
+    finally:
+
+        db.close()
+
+
+
+
+
+
+
+
+
+
+@app.post("/api/reset-password")
+def reset_password(data: dict):
+
+    reset_token = data.get("token")
+    new_password = data.get("new_password")
+
+    # ---------------------------------------------
+    # Validate input
+    # ---------------------------------------------
+
+    if not isinstance(reset_token, str) or not reset_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset link."
+        )
+
+    if not isinstance(new_password, str) or not new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="New password is required."
+        )
+
+    if len(new_password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least 8 characters."
+        )
+
+    if len(new_password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must not exceed 72 UTF-8 bytes."
+        )
+
+    # ---------------------------------------------
+    # Hash the supplied reset token
+    # ---------------------------------------------
+
+    token_hash = hashlib.sha256(
+        reset_token.encode("utf-8")
+    ).hexdigest()
+
+    now = datetime.now(timezone.utc)
+
+    db = SessionLocal()
+
+    try:
+
+        with db.begin():
+
+            # -------------------------------------
+            # Atomically consume the reset token.
+            # Only an unused, unexpired token works.
+            # -------------------------------------
+
+            result = db.execute(
+                update(password_reset_tokens)
+                .where(
+                    password_reset_tokens.c.token_hash == token_hash,
+                    password_reset_tokens.c.used_at.is_(None),
+                    password_reset_tokens.c.expires_at > now
+                )
+                .values(
+                    used_at=now
+                )
+                .returning(
+                    password_reset_tokens.c.user_id
+                )
+            )
+
+            token_record = result.first()
+
+            if token_record is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid or expired reset link."
+                )
+
+            user_id = token_record[0]
+
+            # -------------------------------------
+            # Hash the new password
+            # -------------------------------------
+
+            hashed_password = pwd_context.hash(
+                new_password
+            )
+
+            # -------------------------------------
+            # Update user password
+            # -------------------------------------
+
+            db.execute(
+                update(auth_users)
+                .where(
+                    auth_users.c.id == user_id
+                )
+                .values(
+                    password_hash=hashed_password
+                )
+            )
+
+            # -------------------------------------
+            # Invalidate all other outstanding
+            # reset tokens for this user.
+            # -------------------------------------
+
+            db.execute(
+                update(password_reset_tokens)
+                .where(
+                    password_reset_tokens.c.user_id == user_id,
+                    password_reset_tokens.c.used_at.is_(None)
+                )
+                .values(
+                    used_at=now
+                )
+            )
+
+        # Transaction committed successfully.
+
+        return {
+            "success": True,
+            "message": "Password reset successfully. Please log in."
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        db.rollback()
+
+        print("RESET PASSWORD ERROR:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to reset password."
+        )
+
+    finally:
+
+        db.close()
+
+
+
+
+
+
+
+
 
 
 
@@ -2570,6 +2872,69 @@ def send_order_confirmation_email(
         server.send_message(message)
 
 
+def send_password_reset_email(
+    to_email,
+    reset_link
+):
+
+    required_settings = [
+        "SMTP_HOST",
+        "SMTP_USERNAME",
+        "SMTP_PASSWORD",
+        "SMTP_FROM",
+        "FRONTEND_URL"
+    ]
+
+    missing = [
+        key for key in required_settings
+        if not os.getenv(key)
+    ]
+
+    if missing:
+        raise RuntimeError(
+            "Missing email settings: " + ", ".join(missing)
+        )
+
+    message = EmailMessage()
+
+    message["Subject"] = "Password Reset Request"
+    message["From"] = os.environ["SMTP_FROM"]
+    message["To"] = to_email
+
+    lines = [
+        "Hello,",
+        "",
+        "We received a request to reset your password.",
+        "",
+        "Click the link below to choose a new password:",
+        "",
+        reset_link,
+        "",
+        "This link expires in 30 minutes and can only be used once.",
+        "",
+        "If you did not request this password reset, "
+        "you can safely ignore this email.",
+        "",
+        "Regards,",
+        "Support Team"
+    ]
+
+    message.set_content("\n".join(lines))
+
+    with smtplib.SMTP(
+        os.environ["SMTP_HOST"],
+        int(os.getenv("SMTP_PORT", "587")),
+        timeout=20
+    ) as server:
+
+        server.starttls()
+
+        server.login(
+            os.environ["SMTP_USERNAME"],
+            os.environ["SMTP_PASSWORD"]
+        )
+
+        server.send_message(message)
 
 
 

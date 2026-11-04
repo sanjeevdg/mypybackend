@@ -1,0 +1,26 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Pivot table
+    widgets:
+
+    - type: pivotGrid
+      title: Orders Analysis
+
+      source:
+        entity: orders
+
+      pivot:
+        rows:
+          - status
+
+        columns:
+          - customer_id
+
+        values:
+          - field: id
+            aggregation: count
+
+        showRowTotals: true
+        showColumnTotals: true
+        showGrandTotal: true

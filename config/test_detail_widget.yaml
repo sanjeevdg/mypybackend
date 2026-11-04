@@ -1,0 +1,70 @@
+
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Detail Widget
+    widgets:
+    - id: container_1793713438096
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: datagrid_1793713449516
+        type: datagrid
+        title: New datagrid
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: customers
+          columns:
+          - field: id
+            label: id
+          - field: user_id
+            label: Linked User
+          - field: first_name
+            label: First Name
+          - field: last_name
+            label: Last Name
+          - field: email
+            label: Email
+          - field: age
+            label: Age
+          - field: gender
+            label: Gender
+          - field: city
+            label: City
+          - field: active
+            label: Active
+      - id: detail_1793713689396
+        type: detail
+        title: New detail
+        layout:
+          xs: 12
+          md: 6
+        source:
+          entity: customers
+          binding: formData
+        fields:
+        - field: id
+          label: id
+        - field: user_id
+          label: Linked User
+        - field: first_name
+          label: First Name
+        - field: last_name
+          label: Last Name
+        - field: email
+          label: Email
+        - field: age
+          label: Age
+        - field: gender
+          label: Gender
+        - field: active
+          label: Active
+        - field: city
+          label: City
