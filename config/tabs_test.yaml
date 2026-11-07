@@ -1,0 +1,65 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Tabs Test
+    widgets:
+    - id: container_1794032437377
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: tabs_1794032442660
+        type: tabs
+        title: New Tabs
+        layout:
+          xs: 12
+          md: 12
+        tabs:
+        - id: tab_1794033478868
+          label: Tab 3
+          widgets: []
+        - id: tab_other_1794032442660
+          label: Dashboard
+          widgets:
+          - id: textfield_1794032514908
+            type: textfield
+            title: New textfield
+            layout:
+              xs: 12
+              md: 6
+            props:
+              required: true
+        - id: tab_details_1794032442660
+          label: Details
+          widgets:
+          - id: textfield_1794032511191
+            type: textfield
+            title: New textfield
+            layout:
+              xs: 12
+              md: 6
+            props:
+              required: true
+          - id: select_1794032521744
+            type: select
+            title: New select
+            layout:
+              xs: 12
+              md: 6
+            props:
+              required: true
+          - id: button_1794033796133
+            type: button
+            title: New button
+            layout:
+              xs: 12
+              md: 6
+            text: Button
+            props:
+              variant: contained
+            events:
+              onClick: saveCustomer
