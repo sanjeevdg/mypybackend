@@ -280,7 +280,7 @@ navigation:
         icon: dashboard
       - id: customers
         label: Customers
-        route: /dashboard/customer_crud_v1
+        route: /dashboard/customer_design_v2
         icon: user
       - id: inventory
         label: Inventory
