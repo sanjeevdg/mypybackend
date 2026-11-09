@@ -1,0 +1,59 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Charts
+    widgets:
+    - id: chart_1794114356533
+      type: chart
+      title: Orders by status
+      layout:
+        xs: 12
+        md: 6
+      chart:
+        type: pie
+        entity: orders
+        x: customer_id
+        y: status
+    - id: chart_1794114570811
+      type: chart
+      title: Customers by city
+      layout:
+        xs: 12
+        md: 6
+      chart:
+        type: pie
+        entity: customers
+        x: user_id
+        y: city
+    - id: chart_1794114657788
+      type: chart
+      title: New chart
+      layout:
+        xs: 12
+        md: 6
+      chart:
+        type: pie
+        entity: inventory
+        x: price
+        y: name
+    - id: chart_1794114808143
+      type: chart
+      title: New chart
+      layout:
+        xs: 12
+        md: 6
+      chart:
+        type: pie
+        entity: discount_batches
+        x: id
+        y: discount_type
+    - id: stat_1794114901061
+      type: stat
+      title: New stat
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: discount_batches
+        aggregate: count
+        field: ''

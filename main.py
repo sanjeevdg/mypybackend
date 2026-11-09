@@ -164,7 +164,7 @@ def get_my_account(
     }
 
 
-
+'''
 @app.get("/api/config")
 def get_config(name: str = "app"):
 
@@ -192,7 +192,52 @@ def get_config(name: str = "app"):
             status_code=500,
             detail=f"Invalid YAML: {str(e)}"
         )
+'''
 
+@app.get("/api/config")
+def get_config(name: str = "app"):
+
+    config_file = CONFIG_DIR / f"{name}.yaml"
+
+    if not config_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Configuration '{name}.yaml' not found"
+        )
+
+    try:
+
+        with config_file.open("r", encoding="utf-8") as f:
+            page_config = yaml.safe_load(f) or {}
+
+        if not isinstance(page_config, dict):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid page configuration"
+            )
+
+        shared_config = load_shared_yaml()
+
+        if not isinstance(shared_config, dict):
+            shared_config = {}
+
+        # Merge shared configuration with page configuration
+        config = deep_merge(
+            shared_config,
+            page_config
+        )
+
+        return config
+
+    except HTTPException:
+        raise
+
+    except yaml.YAMLError as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Invalid YAML: {str(e)}"
+        )
 
 
 
@@ -960,11 +1005,175 @@ def reset_password(data: dict):
 
 
 
+@app.post("/api/config/save")
+def save_config(request: SaveConfigRequest):
+
+    try:
+
+        config_dir = CONFIG_DIR
+        config_dir.mkdir(parents=True, exist_ok=True)
+
+        # -----------------------------------------
+        # VALIDATE CONFIGURATION NAME
+        # -----------------------------------------
+
+        safe_name = Path(
+            request.name.strip().strip("'\"")
+        ).name
+
+        if not safe_name:
+            raise HTTPException(
+                status_code=400,
+                detail="Configuration name is required"
+            )
+
+        if not safe_name.endswith(".yaml"):
+            safe_name += ".yaml"
+
+        if safe_name.lower() == "shared.yaml":
+            raise HTTPException(
+                status_code=400,
+                detail="shared.yaml is reserved"
+            )
+
+        config_path = config_dir / safe_name
+        shared_path = config_dir / "shared.yaml"
+
+        # -----------------------------------------
+        # GET INCOMING CONFIGURATION
+        # -----------------------------------------
+
+        config_data = request.config
+
+        if not isinstance(config_data, dict):
+            raise HTTPException(
+                status_code=400,
+                detail="Configuration must be a dictionary"
+            )
+
+        # -----------------------------------------
+        # VALIDATE PAGES
+        # -----------------------------------------
+
+        if "pages" not in config_data:
+            raise HTTPException(
+                status_code=400,
+                detail="Configuration does not contain a pages section"
+            )
+
+        pages_config = config_data["pages"]
+
+        if not isinstance(pages_config, dict):
+            raise HTTPException(
+                status_code=400,
+                detail="Pages must be a dictionary"
+            )
+
+        # -----------------------------------------
+        # LOAD EXISTING SHARED CONFIGURATION
+        # -----------------------------------------
+
+        if shared_path.exists():
+
+            with shared_path.open(
+                "r",
+                encoding="utf-8"
+            ) as file:
+
+                shared_config = yaml.safe_load(file) or {}
+
+        else:
+
+            shared_config = {}
+
+        if not isinstance(shared_config, dict):
+            shared_config = {}
+
+        # -----------------------------------------
+        # UPDATE SHARED SECTIONS
+        # -----------------------------------------
+
+        shared_sections = [
+            "entities",
+            "relationships",
+            "navigation"
+        ]
+
+        for section in shared_sections:
+
+            if section in config_data:
+
+                shared_config[section] = config_data[section]
+
+        # -----------------------------------------
+        # SAVE SHARED.YAML
+        # -----------------------------------------
+
+        with shared_path.open(
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            yaml.safe_dump(
+                shared_config,
+                file,
+                sort_keys=False,
+                allow_unicode=True
+            )
+
+        # -----------------------------------------
+        # SAVE PAGE CONFIGURATION ONLY
+        # -----------------------------------------
+
+        page_config = {
+            "pages": pages_config
+        }
+
+        with config_path.open(
+            "w",
+            encoding="utf-8"
+        ) as file:
+
+            yaml.safe_dump(
+                page_config,
+                file,
+                sort_keys=False,
+                allow_unicode=True
+            )
+
+        # -----------------------------------------
+        # RESPONSE
+        # -----------------------------------------
+
+        return {
+            "success": True,
+            "message": "Shared and page configurations saved successfully",
+            "name": safe_name,
+            "page_path": str(config_path),
+            "shared_path": str(shared_path),
+            "saved_sections": [
+                "entities",
+                "relationships",
+                "navigation",
+                "pages"
+            ]
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+
+        print("SAVE CONFIG ERROR:", e)
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 
-
-
+'''
 @app.post("/api/config/save")
 def save_config(request: SaveConfigRequest):
 
@@ -1025,6 +1234,7 @@ def save_config(request: SaveConfigRequest):
             status_code=500,
             detail=str(e)
         )
+'''
 
 @app.post("/api/read-file")
 async def read_file(file: UploadFile = File(...)):
@@ -1450,8 +1660,6 @@ def get_stats(payload: dict[str, Any] = Body(...)):
     stats = payload.get("stats", [])
     selected_customer_id = payload.get("selectedCustomerId")
 
-    selected_customer_id = payload.get("selectedCustomerId")
-
     print("========== STATS API DEBUG ==========")
     print("selectedCustomerId:", selected_customer_id)
     print("stats:", stats)
@@ -1502,22 +1710,15 @@ def get_stats(payload: dict[str, Any] = Body(...)):
         table = metadata.tables[entity]
 
         # -----------------------------------------
-        # FIELD VALIDATION
-        # -----------------------------------------
-
-        if field is not None and field not in table.c:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Unknown field '{field}' in entity '{entity}'"
-            )
-
-        # -----------------------------------------
         # AGGREGATE VALIDATION
         # -----------------------------------------
 
         allowed_aggregates = {
             "count",
-            "sum"
+            "sum",
+            "avg",
+            "min",
+            "max"
         }
 
         if aggregate not in allowed_aggregates:
@@ -1527,179 +1728,125 @@ def get_stats(payload: dict[str, Any] = Body(...)):
             )
 
         # -----------------------------------------
-        # COUNT
+        # FIELD VALIDATION
+        # -----------------------------------------
+
+        if field is not None and field not in table.c:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown field '{field}' in entity '{entity}'"
+            )
+
+        if aggregate != "count" and not field:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Stat '{title}' requires a field for {aggregate}"
+            )
+
+        # -----------------------------------------
+        # BUILD AGGREGATE EXPRESSION
         # -----------------------------------------
 
         if aggregate == "count":
 
-            conditions = []
-            params = {}
+            aggregate_expression = func.count()
 
-            # -----------------------------------------
-            # YAML VALUE FILTER
-            # -----------------------------------------
+        else:
 
-            if field and value is not None:
+            column = table.c[field]
 
-                conditions.append(
-                    f"{field} = :value"
+            if aggregate == "sum":
+
+                aggregate_expression = func.coalesce(
+                    func.sum(column), 0
                 )
 
-                params["value"] = value
+            elif aggregate == "avg":
 
-            # -----------------------------------------
-            # SELECTED CUSTOMER FILTER
-            # -----------------------------------------
+                aggregate_expression = func.avg(column)
 
-            filter_config = stat.get("filter")
+            elif aggregate == "min":
 
-            if filter_config:
+                aggregate_expression = func.min(column)
 
-                filter_field = filter_config.get("field")
+            elif aggregate == "max":
 
-                if filter_field not in table.c:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=(
-                            f"Unknown filter field "
-                            f"'{filter_field}' in entity '{entity}'"
-                        )
-                    )
-
-                if selected_customer_id is None:
-                    result = 0
-                else:
-
-                    conditions.append(
-                        f"{filter_field} = :selected_customer_id"
-                    )
-
-                    params["selected_customer_id"] = (
-                        selected_customer_id
-                    )
-
-                    where_clause = (
-                        " WHERE " +
-                        " AND ".join(conditions)
-                        if conditions
-                        else ""
-                    )
-
-                    sql = text(
-                        f"""
-                        SELECT COUNT(*)
-                        FROM {entity}
-                        {where_clause}
-                        """
-                    )
-
-                    with engine.connect() as conn:
-
-                        result = conn.execute(
-                            sql,
-                            params
-                        ).scalar()
-
-            else:
-
-                where_clause = (
-                    " WHERE " +
-                    " AND ".join(conditions)
-                    if conditions
-                    else ""
-                )
-
-                sql = text(
-                    f"""
-                    SELECT COUNT(*)
-                    FROM {entity}
-                    {where_clause}
-                    """
-                )
-
-                with engine.connect() as conn:
-
-                    result = conn.execute(
-                        sql,
-                        params
-                    ).scalar()
+                aggregate_expression = func.max(column)
 
         # -----------------------------------------
-        # SUM
+        # BUILD FILTER CONDITIONS
         # -----------------------------------------
 
-        elif aggregate == "sum":
+        conditions = []
 
-            if not field:
+        # -----------------------------------------
+        # YAML VALUE FILTER
+        # -----------------------------------------
+
+        if field and value is not None:
+
+            conditions.append(
+                table.c[field] == value
+            )
+
+        # -----------------------------------------
+        # WIDGET FILTER
+        # -----------------------------------------
+
+        filter_config = stat.get("filter")
+
+        if filter_config:
+
+            filter_field = filter_config.get("field")
+
+            if filter_field not in table.c:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Stat '{title}' requires a field for sum"
+                    detail=(
+                        f"Unknown filter field "
+                        f"'{filter_field}' in entity '{entity}'"
+                    )
                 )
 
-            conditions = []
-            params = {}
+            if selected_customer_id is None:
 
-            filter_config = stat.get("filter")
+                # No selected customer means no matching records.
+                results.append({
+                    "title": title,
+                    "value": 0
+                })
 
-            if filter_config:
+                continue
 
-                filter_field = filter_config.get("field")
+            conditions.append(
+                table.c[filter_field] == selected_customer_id
+            )
 
-                if filter_field not in table.c:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=(
-                            f"Unknown filter field "
-                            f"'{filter_field}' in entity '{entity}'"
-                        )
-                    )
+        # -----------------------------------------
+        # BUILD QUERY
+        # -----------------------------------------
 
-                if selected_customer_id is None:
+        query = (
+            select(aggregate_expression)
+            .select_from(table)
+        )
 
-                    result = 0
+        if conditions:
 
-                else:
+            query = query.where(*conditions)
 
-                    conditions.append(
-                        f"{filter_field} = :selected_customer_id"
-                    )
+        print(
+            f"STAT QUERY: {entity} | "
+            f"{aggregate} | {field}"
+        )
 
-                    params["selected_customer_id"] = (
-                        selected_customer_id
-                    )
+        # -----------------------------------------
+        # EXECUTE QUERY
+        # -----------------------------------------
 
-                    where_clause = (
-                        " WHERE " +
-                        " AND ".join(conditions)
-                    )
+        with engine.connect() as conn:
 
-                    sql = text(
-                        f"""
-                        SELECT COALESCE(SUM({field}), 0)
-                        FROM {entity}
-                        {where_clause}
-                        """
-                    )
-
-                    with engine.connect() as conn:
-
-                        result = conn.execute(
-                            sql,
-                            params
-                        ).scalar()
-
-            else:
-
-                sql = text(
-                    f"""
-                    SELECT COALESCE(SUM({field}), 0)
-                    FROM {entity}
-                    """
-                )
-
-                with engine.connect() as conn:
-
-                    result = conn.execute(sql).scalar()
+            result = conn.execute(query).scalar()
 
         # -----------------------------------------
         # RESULT
@@ -1709,6 +1856,8 @@ def get_stats(payload: dict[str, Any] = Body(...)):
             "title": title,
             "value": result if result is not None else 0
         })
+
+    print("STATS API RESULT:", results)
 
     return results
 

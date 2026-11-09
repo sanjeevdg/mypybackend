@@ -1,0 +1,50 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Detail Grid
+    widgets:
+    - id: datagrid_1794116115025
+      type: datagrid
+      title: New datagrid
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: inventory
+        columns:
+        - field: id
+          label: id
+        - field: sku
+          label: SKU
+        - field: name
+          label: Product Name
+        - field: description
+          label: Description
+        - field: price
+          label: Price
+        - field: stock_quantity
+          label: Stock Quantity
+    - id: detail_1794116100073
+      type: detail
+      title: New detail
+      layout:
+        xs: 12
+        md: 6
+      source:
+        entity: inventory
+        binding: selectedRecord
+      fields:
+      - field: id
+        label: id
+      - field: sku
+        label: SKU
+      - field: name
+        label: Product Name
+      - field: description
+        label: Description
+      - field: price
+        label: Price
+      - field: stock_quantity
+        label: Stock Quantity
+      - field: active
+        label: Active

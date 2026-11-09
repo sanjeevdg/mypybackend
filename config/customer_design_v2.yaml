@@ -436,7 +436,7 @@ pages:
           title: Active
           layout:
             xs: 12
-            md: 4
+            md: 6
           props:
             label: Active
         - id: button_1794059783782
@@ -444,7 +444,7 @@ pages:
           title: New button
           layout:
             xs: 12
-            md: 4
+            md: 3
           text: Save
           props:
             variant: contained
@@ -458,10 +458,11 @@ pages:
           title: New button
           layout:
             xs: 12
-            md: 4
+            md: 3
           text: Delete
           props:
             variant: contained
+            color: warning
           events:
             onClick: deleteCustomer
           feedback:
