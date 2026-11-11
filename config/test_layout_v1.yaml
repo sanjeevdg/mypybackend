@@ -1,0 +1,74 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Layout V1
+    widgets:
+    - id: container_1794286209149
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 6
+      props:
+        title: Container
+      children:
+      - id: textfield_1794286215102
+        type: textfield
+        title: New textfield
+        layout:
+          xs: 12
+          md: 6
+      - id: textfield_1794286234281
+        type: textfield
+        title: New textfield
+        layout:
+          xs: 12
+          md: 6
+      - id: select_1794287526306
+        type: select
+        title: New select
+        layout:
+          xs: 12
+          md: 6
+      - id: checkbox_1794288222841
+        type: checkbox
+        title: New checkbox
+        layout:
+          xs: 12
+          md: 6
+      - id: radio_1794288237690
+        type: radio
+        title: New radio
+        layout:
+          xs: 12
+          md: 6
+        props:
+          options:
+          - value: ''
+            label: ''
+          - value: ''
+            label: ''
+          orientation: row
+      - id: datePicker_1794288654369
+        type: datePicker
+        title: Date
+        layout:
+          xs: 12
+          md: 6
+        props:
+          field: ''
+          label: Date
+          defaultValue: ''
+          required: false
+          readOnly: false
+      - id: images_1794288704874
+        type: images
+        title: Multiple Images
+        layout:
+          xs: 12
+          md: 6
+        props:
+          label: Multiple Images
+          formEntity: customers
+          field: images
+          maxImages: 10

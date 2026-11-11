@@ -1,0 +1,57 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Datagrid Detail
+    widgets:
+    - id: container_1794405356364
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: datagrid_1794405361669
+        type: datagrid
+        title: New datagrid
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: customers
+          columns:
+          - field: id
+            label: id
+          - field: user_id
+            label: Linked User
+          - field: first_name
+            label: First Name
+          - field: last_name
+            label: Last Name
+          - field: email
+            label: Email
+          detail:
+            entity: customers
+            foreignKey: id
+            parentKey: id
+            title: Details
+            columns:
+            - field: id
+              label: id
+            - field: user_id
+              label: Linked User
+            - field: first_name
+              label: First Name
+            - field: last_name
+              label: Last Name
+            - field: email
+              label: Email
+            - field: age
+              label: Age
+            - field: gender
+              label: Gender
+            - field: city
+              label: City
+            - field: active
+              label: Active
