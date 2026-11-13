@@ -2323,6 +2323,46 @@ def get_record(
 
         db.close()
 
+
+
+
+
+
+
+
+
+@app.get("/api/entities")
+def get_entities():
+
+    return {
+        "entities": sorted(metadata.tables.keys())
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 @app.get("/api/{table}")
 def list_records(
     table: str,

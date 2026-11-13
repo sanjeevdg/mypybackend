@@ -1,0 +1,20 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Pivot Table
+    widgets:
+    - type: pivotGrid
+      title: Order Items Analysis
+      source:
+        entity: order_items
+      pivot:
+        rows:
+        - final_amount
+        columns:
+        - order_id
+        values:
+        - field: id
+          aggregation: sum
+        showRowTotals: true
+        showColumnTotals: true
+        showGrandTotal: true

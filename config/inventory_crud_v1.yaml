@@ -19,7 +19,7 @@ pages:
           mode
         layout:
           xs: 12
-          md: 6
+          md: 12
         source:
           entity: inventory
           columns:

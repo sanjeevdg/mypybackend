@@ -106,6 +106,32 @@ entities:
       type: datetime
       label: Updated At
       readonly: true
+    workflow:
+      initialState: draft
+      transitions:
+      - action: submit
+        label: Submit
+        from: draft
+        to: submitted
+      - action: approve
+        label: Approve
+        from: submitted
+        to: approved
+      - action: ship
+        label: Ship
+        from: approved
+        to: shipped
+      - action: deliver
+        label: Deliver
+        from: shipped
+        to: delivered
+      - action: cancel
+        label: Cancel
+        from:
+        - draft
+        - submitted
+        - approved
+        to: cancelled
   order_items:
     key: id
     fields:
@@ -280,7 +306,7 @@ navigation:
         icon: dashboard
       - id: customers
         label: Customers
-        route: /dashboard/customer_design_v2
+        route: /dashboard/customer_crud_v1
         icon: user
       - id: inventory
         label: Inventory
@@ -290,6 +316,15 @@ navigation:
         label: Orders
         route: /dashboard/orders_crud_v4
         icon: shopping-cart
+
+      - id: pivot_table
+        label: Pivot Table
+        route: /dashboard/pivot_table
+        icon: pivot
+
+
+
+
       - label: Apply Global Discount
         route: /apply-discount
         icon: LocalOffer

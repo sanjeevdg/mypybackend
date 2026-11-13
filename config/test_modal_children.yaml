@@ -1,0 +1,48 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Modal Children
+    widgets:
+    - id: container_1794460495057
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: modal_1794460504026
+        type: modal
+        title: New Modal
+        layout:
+          xs: 12
+          md: 6
+        props:
+          title: Modal
+          triggerText: Open Modal
+          maxWidth: sm
+          showCloseButton: true
+          closeOnBackdropClick: true
+          actions: []
+        events:
+          onOpen: ''
+          onClose: ''
+        children:
+        - id: textfield_1794460526663
+          type: textfield
+          title: MYLabelText
+          layout:
+            xs: 12
+            md: 6
+          props:
+            required: true
+        - id: button_1794463059330
+          type: button
+          title: ModalActtionButton
+          layout:
+            xs: 12
+            md: 6
+          text: ModalActtionButton
+          props:
+            variant: contained
