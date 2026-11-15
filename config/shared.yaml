@@ -4,10 +4,6 @@ entities:
     fields:
     - name: id
       type: number
-    - name: user_id
-      type: number
-      label: Linked User
-      readonly: true
     - name: first_name
       type: text
       label: First Name
@@ -69,8 +65,6 @@ entities:
     - name: active
       type: boolean
       label: Active
-    - name: images
-      type: json
   orders:
     key: id
     fields:
@@ -158,22 +152,7 @@ entities:
       label: Quantity
     - name: amount
       type: currency
-      label: Original Amount
-    - name: discount_type
-      type: text
-      label: Discount Type
-    - name: discount_value
-      type: currency
-      label: Discount Value
-    - name: discount_amount
-      type: currency
-      label: Discount Amount
-    - name: final_amount
-      type: currency
-      label: Final Amount
-    - name: discount_batch_id
-      type: number
-      label: Discount Batch
+      label: Amount
     - name: createdAt
       type: datetime
       label: Created At
@@ -316,15 +295,10 @@ navigation:
         label: Orders
         route: /dashboard/orders_crud_v4
         icon: shopping-cart
-
       - id: pivot_table
         label: Pivot Table
         route: /dashboard/pivot_table
         icon: pivot
-
-
-
-
       - label: Apply Global Discount
         route: /apply-discount
         icon: LocalOffer

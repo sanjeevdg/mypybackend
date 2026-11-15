@@ -32,6 +32,16 @@ pages:
         source:
           entity: customers
           aggregate: count
+      - id: stat_1794576004773
+        type: stat
+        title: Average Age of Customer
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: customers
+          aggregate: avg
+          field: age
     - id: container_1792642145133
       type: container
       title: New container
@@ -62,6 +72,16 @@ pages:
           entity: orders
           aggregate: count
           field: ''
+      - id: stat_1794576178660
+        type: stat
+        title: Total revenue
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: order_items
+          aggregate: sum
+          field: amount
     - id: container_1792642967740
       type: container
       title: New container
@@ -92,3 +112,13 @@ pages:
           entity: inventory
           aggregate: count
           field: ''
+      - id: stat_1794576219379
+        type: stat
+        title: Total discount
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: discount_batch_items
+          aggregate: sum
+          field: discount_amount
