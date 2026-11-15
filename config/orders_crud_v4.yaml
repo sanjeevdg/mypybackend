@@ -57,6 +57,15 @@ pages:
             - field: final_amount
               label: Final Amount
 
+          detail:
+            title: Item Attributes
+            entity: inventory
+            foreignKey: id
+            parentKey: product_id
+
+            columns:
+              - field: attribute_name
+              - field: description    
         
     - id: container_1790950935727
       type: container
