@@ -65,7 +65,10 @@ pages:
 
             columns:
               - field: attribute_name
-              - field: description    
+              - field: description  
+              - field: images
+                label: Product Images
+                type: image  
         
     - id: container_1790950935727
       type: container

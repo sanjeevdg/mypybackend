@@ -2295,7 +2295,14 @@ def get_record(
         # Get dynamic SQLAlchemy table
         t = metadata.tables[table]
 
+
+
+
+
+
+
         # Find the record by primary key
+        '''
         result = db.execute(
             select(t).where(
                 t.c.id == record_id
@@ -2303,6 +2310,33 @@ def get_record(
         )
 
         row = result.mappings().first()
+        '''
+        query = select(t).where(
+            t.c.id == record_id
+        )
+
+        print("\nSQLALCHEMY QUERY:", query)
+
+        result = db.execute(query)
+
+        row = result.mappings().first()
+
+        if row:
+            print("QUERY RESULT KEYS:", list(row.keys()))
+
+            print(
+                "QUERY IMAGES VALUE:",
+                row.get("images", "MISSING")
+            )
+
+            print("COMPLETE QUERY RESULT:", dict(row))
+
+
+
+
+
+
+
 
         if row is None:
             raise HTTPException(
@@ -2316,7 +2350,9 @@ def get_record(
             for key, value in row.items()
             if key != "password"
         }
-
+        print("FINAL API RECORD:", record)
+        print("FINAL API IMAGES:", record.get("images", "MISSING"))
+        
         return record
 
     finally:

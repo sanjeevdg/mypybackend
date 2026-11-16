@@ -62,6 +62,9 @@ entities:
     - name: stock_quantity
       type: number
       label: Stock Quantity
+    - name: images
+      type: json
+      label: Product Images  
     - name: active
       type: boolean
       label: Active
