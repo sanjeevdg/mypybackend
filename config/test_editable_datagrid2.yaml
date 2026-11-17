@@ -1,0 +1,72 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Editable Datagrid
+    widgets:
+    - id: container_1794890666127
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: editable_datagrid_1794890668263
+        type: editable_datagrid
+        title: Editable Data Grid
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: customers
+          limit: 10
+          columns:
+            - field: id
+              headerName: ID
+              editable: false
+              width: 80
+
+            - field: first_name
+              headerName: First Name
+              editor: text
+
+            - field: last_name
+              headerName: Last Name
+              editor: text
+
+            - field: email
+              headerName: Email
+              editor: text
+              minWidth: 200
+
+            - field: age
+              headerName: Age
+              editor: number
+
+            - field: gender
+              headerName: Gender
+              editor: select
+              options:
+                - Male
+                - Female
+                - Other
+
+            - field: city
+              headerName: City
+              editor: select
+              options:
+                - London
+                - Paris
+                - Delhi
+                - Kolkata
+                - Mumbai
+                - Bangalore
+
+            - field: active
+              headerName: Active
+              editor: checkbox
+
+        props:
+          pageSize: 10
+          showSearch: true

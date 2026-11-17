@@ -37,7 +37,7 @@ from config_loader import load_yaml
 from model_factory import build_models, metadata
 from database import engine, SessionLocal, metadata
 
-from sqlalchemy import insert, select, delete, update, create_engine, text, func
+from sqlalchemy import insert, select, delete, update, create_engine, text, func, JSON
 from sqlalchemy.exc import IntegrityError
 from passlib.context import CryptContext
 
@@ -271,6 +271,73 @@ async def upload_file(file: UploadFile = File(...)):
         "filename": filename,
         "original": file.filename
     }
+
+
+
+def configure_cloudinary():
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    api_key = os.getenv("CLOUDINARY_API_KEY")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    if not all([cloud_name, api_key, api_secret]):
+        raise HTTPException(
+            status_code=500,
+            detail="Cloudinary environment variables are not configured."
+        )
+
+    cloudinary.config(
+        cloud_name=cloud_name,
+        api_key=api_key,
+        api_secret=api_secret,
+        secure=True
+    )
+
+
+
+
+def validate_image(file):
+
+    MAX_FILE_SIZE = 5 * 1024 * 1024
+
+    allowed_types = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/gif"
+    ]
+
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image type: {file.filename}"
+        )
+
+    content = file.file.read(MAX_FILE_SIZE + 1)
+
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{file.filename} exceeds the 5 MB limit."
+        )
+
+    if not content:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{file.filename} is empty."
+        )
+
+    file.file.seek(0)
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2933,6 +3000,321 @@ def remove_inventory_image(inventory_id: int, url: str):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         db.close()
+
+
+
+@app.post("/api/{table}/images/upload")
+def upload_entity_images(
+    table: str,
+    files: list[UploadFile] = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+
+    MAX_IMAGES = 10
+
+    if not files:
+        raise HTTPException(
+            status_code=400,
+            detail="Please select at least one image."
+        )
+
+    if len(files) > MAX_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You can upload at most {MAX_IMAGES} images."
+        )
+
+    try:
+        # Validate that the entity exists.
+        get_table(table)
+
+        configure_cloudinary()
+
+        uploaded_urls = []
+
+        for file in files:
+
+            validate_image(file)
+
+            result = cloudinary.uploader.upload(
+                file.file,
+                folder=f"{table}/pending",
+                resource_type="image"
+            )
+
+            uploaded_urls.append(result["secure_url"])
+
+        return {
+            "status": "ok",
+            "entity": table,
+            "images": uploaded_urls,
+            "uploaded_count": len(uploaded_urls)
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image upload failed: {str(e)}"
+        )
+
+    finally:
+        for file in files:
+            file.file.close()
+
+
+
+
+
+@app.post("/api/{table}/{record_id}/images")
+def add_entity_images(
+    table: str,
+    record_id: int,
+    files: list[UploadFile] = File(...),
+    field: str = "images",
+    current_user: dict = Depends(get_current_user)
+):
+
+    MAX_IMAGES = 10
+
+    db = SessionLocal()
+
+    try:
+        t = get_table(table)
+
+        if field not in t.c:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Field '{field}' does not exist."
+            )
+
+        if not isinstance(t.c[field].type, JSON):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Field '{field}' must be a JSON column."
+            )
+
+        row = db.execute(
+            select(t).where(t.c.id == record_id)
+        ).first()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Record not found."
+            )
+
+        existing_images = list(
+            row._mapping[field] or []
+        )
+
+        if len(existing_images) + len(files) > MAX_IMAGES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"You can have at most {MAX_IMAGES} images."
+            )
+
+        configure_cloudinary()
+
+        uploaded_urls = []
+
+        for file in files:
+
+            validate_image(file)
+
+            result = cloudinary.uploader.upload(
+                file.file,
+                folder=f"{table}/{record_id}",
+                resource_type="image"
+            )
+
+            uploaded_urls.append(result["secure_url"])
+
+        updated_images = existing_images + uploaded_urls
+
+        db.execute(
+            update(t)
+            .where(t.c.id == record_id)
+            .values(**{
+                field: updated_images
+            })
+        )
+
+        db.commit()
+
+        return {
+            "status": "ok",
+            "entity": table,
+            "record_id": record_id,
+            "field": field,
+            "images": updated_images
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Image upload failed: {str(e)}"
+        )
+
+    finally:
+        db.close()
+
+        for file in files:
+            file.file.close()
+
+
+
+
+
+
+
+
+@app.delete("/api/{table}/{record_id}/images")
+def remove_entity_image(
+    table: str,
+    record_id: int,
+    url: str,
+    field: str = "images",
+    current_user: dict = Depends(get_current_user)
+):
+
+    db = SessionLocal()
+
+    try:
+        t = get_table(table)
+
+        if field not in t.c:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Field '{field}' does not exist."
+            )
+
+        if not isinstance(t.c[field].type, JSON):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Field '{field}' must be a JSON column."
+            )
+
+        row = db.execute(
+            select(t).where(t.c.id == record_id)
+        ).first()
+
+        if row is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Record not found."
+            )
+
+        images = list(row._mapping[field] or [])
+
+        if url not in images:
+            raise HTTPException(
+                status_code=404,
+                detail="Image not found on this record."
+            )
+
+        updated_images = [
+            image for image in images
+            if image != url
+        ]
+
+        db.execute(
+            update(t)
+            .where(t.c.id == record_id)
+            .values(**{
+                field: updated_images
+            })
+        )
+
+        db.commit()
+
+        # Best-effort Cloudinary deletion.
+        try:
+            configure_cloudinary()
+
+            parsed = urlparse(url)
+            parts = parsed.path.split("/")
+
+            upload_index = parts.index("upload")
+            public_id_parts = parts[upload_index + 1:]
+
+            if (
+                public_id_parts
+                and public_id_parts[0].startswith("v")
+            ):
+                public_id_parts = public_id_parts[1:]
+
+            public_id = "/".join(public_id_parts)
+            public_id = public_id.rsplit(".", 1)[0]
+
+            cloudinary.uploader.destroy(
+                public_id,
+                resource_type="image"
+            )
+
+        except Exception as cloudinary_error:
+            print(
+                "Cloudinary deletion failed:",
+                cloudinary_error
+            )
+
+        return {
+            "status": "ok",
+            "entity": table,
+            "record_id": record_id,
+            "field": field,
+            "images": updated_images
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as e:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    finally:
+        db.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
