@@ -1,0 +1,49 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Test Editable Datagrid3
+    widgets:
+    - id: container_1795061169465
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: editable_datagrid_1795061284760
+        type: editable_datagrid
+        title: Discount batches
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: discount_batches
+          columns:
+          - field: id
+            label: id
+          - field: discount_type
+            label: discount_type
+            editor: select
+            options:
+            - percentage
+            - fixed
+          - field: discount_value
+            label: discount_value
+            editor: number
+          - field: product_ids
+            label: product_ids
+          - field: discount_note
+            label: discount_note
+            editor: multiline
+          - field: applied_at
+            label: applied_at
+          - field: applied_by
+            label: applied_by
+          limit: 10
+        props:
+          pageSize: 10
+          editMode: cell
+          saveMode: cell
+          showSearch: true
