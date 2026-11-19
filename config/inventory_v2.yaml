@@ -1,0 +1,57 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Inventory V2
+    widgets:
+    - id: container_1794890666127
+      type: container
+      title: New container
+      layout:
+        xs: 12
+        md: 12
+      props:
+        title: Container
+      children:
+      - id: editable_datagrid_1794890668263
+        type: editable_datagrid
+        title: Editable Inventory List
+        layout:
+          xs: 12
+          md: 12
+        source:
+          entity: inventory
+          limit: 10
+          columns:
+          - field: sku
+            headerName: SKU
+            editor: text
+            editable: true
+          - field: name
+            headerName: Product Name
+            editor: multiline
+            editable: true
+          - field: description
+            headerName: Product Description
+            editor: multiline
+            editable: true
+            minWidth: 250
+          - field: price
+            headerName: Price
+            editor: number
+            editable: true
+          - field: stock_quantity
+            headerName: Stock
+            editor: number
+            editable: true
+          - field: images
+            headerName: Product Images
+            editor: image
+            editable: false
+            maxImages: 10
+          - field: active
+            headerName: Active
+            editor: checkbox
+            editable: true
+        props:
+          pageSize: 10
+          showSearch: true
