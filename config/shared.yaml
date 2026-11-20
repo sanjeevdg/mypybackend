@@ -292,7 +292,7 @@ navigation:
         icon: user
       - id: inventory
         label: Inventory
-        route: /dashboard/inventory_v2
+        route: /dashboard/inventory_v3
         icon: inventory
       - id: orders
         label: Orders
