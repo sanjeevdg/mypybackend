@@ -1,0 +1,153 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: Inventory V3
+    widgets:
+    - id: tabs_1795098410023
+      type: tabs
+      title: New Tabs
+      layout:
+        xs: 12
+        md: 12
+      tabs:
+      - id: tab_general_1795098410023
+        label: Inventory
+        widgets:
+        - id: editable_datagrid_1795098455675
+          type: editable_datagrid
+          title: Inventory List
+          layout:
+            xs: 12
+            md: 12
+          source:
+            entity: inventory
+            columns:
+            - field: id
+              label: id
+            - field: sku
+              label: SKU
+            - field: name
+              label: Product Name
+              editor: multiline
+            - field: description
+              label: Description
+              editor: multiline
+            - field: price
+              label: Price
+              editor: number
+            - field: stock_quantity
+              label: Stock Quantity
+              editor: number
+            - field: images
+              label: Product Images
+              editor: image
+            - field: active
+              label: Active
+              editor: checkbox
+          props:
+            pageSize: 25
+            editMode: cell
+            saveMode: cell
+            showSearch: true
+        - id: container_1792417709119
+          type: container
+          title: New container
+          layout:
+            xs: 12
+            md: 12
+          props:
+            title: Container
+          children:
+          - id: textfield_1792417722457
+            type: textfield
+            title: SKU
+            layout:
+              xs: 12
+              md: 8
+            props:
+              formEntity: inventory
+              field: sku
+              required: true
+          - id: textfield_1792417742774
+            type: textfield
+            title: Product Name
+            layout:
+              xs: 12
+              md: 6
+            props:
+              formEntity: inventory
+              field: name
+              required: true
+          - id: textfield_1792417756703
+            type: textfield
+            title: Description
+            layout:
+              xs: 12
+              md: 6
+            props:
+              formEntity: inventory
+              field: description
+              multiline: true
+              required: true
+          - id: textfield_1792417767202
+            type: textfield
+            title: Price
+            layout:
+              xs: 12
+              md: 6
+            props:
+              formEntity: inventory
+              field: price
+              required: true
+              numeric: true
+          - id: textfield_1792417779599
+            type: textfield
+            title: Stock Quantity
+            layout:
+              xs: 12
+              md: 6
+            props:
+              formEntity: inventory
+              field: stock_quantity
+              required: true
+              numeric: true
+          - id: checkbox_1792417799230
+            type: checkbox
+            title: New checkbox
+            layout:
+              xs: 12
+              md: 6
+            props:
+              field: active
+              formEntity: inventory
+              defaultChecked: true
+              required: false
+          - id: images_1792651554490
+            type: images
+            title: Multiple Images
+            layout:
+              xs: 12
+              md: 6
+            props:
+              label: Upload Images
+              formEntity: inventory
+              field: images
+              maxImages: 10
+          - id: button_1792675185836
+            type: button
+            title: New button
+            layout:
+              xs: 12
+              md: 6
+            text: Save
+            props:
+              variant: contained
+              fullWidth: true
+            events:
+              onClick: saveInventory
+            feedback:
+              success: inventory save success
+              error: inventory save failed
+      - id: tab_details_1795098410023
+        label: Dashboard
+        widgets: []
