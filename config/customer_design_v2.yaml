@@ -189,11 +189,11 @@ pages:
             aggregate: count
         - id: stat_1794060612842
           type: stat
-          title: Some stat
+          title: 'Average Age of Customer '
           layout:
             xs: 12
             md: 6
           source:
             entity: customers
-            aggregate: sum
-            field: user_id
+            aggregate: avg
+            field: age

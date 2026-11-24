@@ -1,0 +1,73 @@
+pages:
+  dashboard:
+    type: dashboard
+    title: User Login
+    widgets:
+    - id: container_1792768548846
+      type: container
+      title: Login Container
+      layout:
+        xs: 12
+        md: 6
+        offset: 3
+      props:
+        title: User Login
+      children:
+      - id: textfield_1792768564782
+        type: textfield
+        title: Email
+        layout:
+          xs: 12
+          md: 12
+        props:
+          label: Email
+          field: email
+          type: email
+          required: true
+      - id: textfield_1792768591101
+        type: textfield
+        title: Password
+        layout:
+          xs: 12
+          md: 12
+        props:
+          label: Password
+          field: password
+          type: password
+          required: true
+      - id: button_forgot_password
+        type: button
+        title: Forgot Password
+        layout:
+          xs: 12
+          md: 3
+        text: Forgot Password?
+        props:
+          variant: text
+          fullWidth: false
+        events:
+          onClick: forgotPassword
+      - id: checkbox_1792768613816
+        type: checkbox
+        title: Remember Me
+        layout:
+          xs: 12
+          md: 8
+        props:
+          label: Remember Me
+          field: remember_me
+          defaultChecked: false
+      - id: button_1792768678781
+        type: button
+        title: Login
+        layout:
+          xs: 12
+          md: 12
+        text: Login
+        props:
+          variant: contained
+        events:
+          onClick: login
+        feedback:
+          success: Logged in successfully.
+          error: Error logging in.

@@ -156,6 +156,26 @@ entities:
     - name: amount
       type: currency
       label: Amount
+    - name: discount_type
+      type: text
+      label: Discount Type
+
+    - name: discount_value
+      type: number
+      label: Discount Value
+
+    - name: discount_amount
+      type: currency
+      label: Discount Amount
+
+    - name: final_amount
+      type: currency
+      label: Final Amount
+
+    - name: discount_batch_id
+      type: number
+      label: Discount Batch ID
+        
     - name: createdAt
       type: datetime
       label: Created At
